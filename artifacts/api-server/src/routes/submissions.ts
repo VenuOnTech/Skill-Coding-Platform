@@ -99,6 +99,7 @@ router.post("/", authenticateToken, async (req: AuthRequest, res) => {
   const results = rawResults.map((r) => ({
     ...r,
     actualOutput: r.actualOutput ?? undefined,
+    error: r.error ?? undefined,
   }));
 
   const passedCount = results.filter((r) => r.passed).length;
@@ -163,7 +164,7 @@ router.post("/", authenticateToken, async (req: AuthRequest, res) => {
           )
         );
 
-      const isFirstAccept = existingAccepted.length === 1;
+      const isFirstAccept = existingAccepted.length === 0;
 
       const allProblems = await db.select({ id: problemsTable.id }).from(problemsTable);
       const dailyProblemId = getDailyQuestProblemId(allProblems.map((p) => p.id));
