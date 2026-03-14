@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * CodeQuest API specification
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import { useMutation, useQuery } from "@tanstack/react-query";
 import type {
@@ -17,14 +17,18 @@ import type {
 } from "@tanstack/react-query";
 
 import type {
+  AllBadgesResponse,
   AuthResponse,
+  DailyQuestResponse,
   ErrorResponse,
   GetLeaderboardParams,
   GetProblemsParams,
   GetSubmissionHistoryParams,
+  GetWeeklyLeaderboardParams,
   HealthStatus,
   LeaderboardResponse,
   LoginRequest,
+  MyBadgesResponse,
   ProblemDetail,
   ProblemsListResponse,
   RegisterRequest,
@@ -34,6 +38,7 @@ import type {
   SubmissionResult,
   SubmitCodeRequest,
   UserProfile,
+  WeeklyLeaderboardResponse,
 } from "./api.schemas";
 
 import { customFetch } from "../custom-fetch";
@@ -120,9 +125,6 @@ export function useHealthCheck<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-/**
- * @summary Register a new user
- */
 export const getRegisterUrl = () => {
   return `/api/auth/register`;
 };
@@ -183,9 +185,6 @@ export type RegisterMutationResult = NonNullable<
 export type RegisterMutationBody = BodyType<RegisterRequest>;
 export type RegisterMutationError = ErrorType<ErrorResponse>;
 
-/**
- * @summary Register a new user
- */
 export const useRegister = <
   TError = ErrorType<ErrorResponse>,
   TContext = unknown,
@@ -206,9 +205,6 @@ export const useRegister = <
   return useMutation(getRegisterMutationOptions(options));
 };
 
-/**
- * @summary Login a user
- */
 export const getLoginUrl = () => {
   return `/api/auth/login`;
 };
@@ -269,9 +265,6 @@ export type LoginMutationResult = NonNullable<
 export type LoginMutationBody = BodyType<LoginRequest>;
 export type LoginMutationError = ErrorType<ErrorResponse>;
 
-/**
- * @summary Login a user
- */
 export const useLogin = <
   TError = ErrorType<ErrorResponse>,
   TContext = unknown,
@@ -292,9 +285,6 @@ export const useLogin = <
   return useMutation(getLoginMutationOptions(options));
 };
 
-/**
- * @summary Get current user profile
- */
 export const getGetMeUrl = () => {
   return `/api/auth/me`;
 };
@@ -335,10 +325,6 @@ export const getGetMeQueryOptions = <
 export type GetMeQueryResult = NonNullable<Awaited<ReturnType<typeof getMe>>>;
 export type GetMeQueryError = ErrorType<ErrorResponse>;
 
-/**
- * @summary Get current user profile
- */
-
 export function useGetMe<
   TData = Awaited<ReturnType<typeof getMe>>,
   TError = ErrorType<ErrorResponse>,
@@ -355,9 +341,6 @@ export function useGetMe<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-/**
- * @summary Get all problems
- */
 export const getGetProblemsUrl = (params?: GetProblemsParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -422,10 +405,6 @@ export type GetProblemsQueryResult = NonNullable<
 >;
 export type GetProblemsQueryError = ErrorType<unknown>;
 
-/**
- * @summary Get all problems
- */
-
 export function useGetProblems<
   TData = Awaited<ReturnType<typeof getProblems>>,
   TError = ErrorType<unknown>,
@@ -449,9 +428,6 @@ export function useGetProblems<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-/**
- * @summary Get a problem by ID
- */
 export const getGetProblemUrl = (id: number) => {
   return `/api/problems/${id}`;
 };
@@ -509,10 +485,6 @@ export type GetProblemQueryResult = NonNullable<
 >;
 export type GetProblemQueryError = ErrorType<ErrorResponse>;
 
-/**
- * @summary Get a problem by ID
- */
-
 export function useGetProblem<
   TData = Awaited<ReturnType<typeof getProblem>>,
   TError = ErrorType<ErrorResponse>,
@@ -536,9 +508,6 @@ export function useGetProblem<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-/**
- * @summary Submit code for a problem
- */
 export const getSubmitCodeUrl = () => {
   return `/api/submissions`;
 };
@@ -599,9 +568,6 @@ export type SubmitCodeMutationResult = NonNullable<
 export type SubmitCodeMutationBody = BodyType<SubmitCodeRequest>;
 export type SubmitCodeMutationError = ErrorType<ErrorResponse>;
 
-/**
- * @summary Submit code for a problem
- */
 export const useSubmitCode = <
   TError = ErrorType<ErrorResponse>,
   TContext = unknown,
@@ -622,9 +588,6 @@ export const useSubmitCode = <
   return useMutation(getSubmitCodeMutationOptions(options));
 };
 
-/**
- * @summary Run code against sample test cases
- */
 export const getRunCodeUrl = () => {
   return `/api/submissions/run`;
 };
@@ -685,9 +648,6 @@ export type RunCodeMutationResult = NonNullable<
 export type RunCodeMutationBody = BodyType<RunCodeRequest>;
 export type RunCodeMutationError = ErrorType<ErrorResponse>;
 
-/**
- * @summary Run code against sample test cases
- */
 export const useRunCode = <
   TError = ErrorType<ErrorResponse>,
   TContext = unknown,
@@ -708,9 +668,6 @@ export const useRunCode = <
   return useMutation(getRunCodeMutationOptions(options));
 };
 
-/**
- * @summary Get submission history for current user
- */
 export const getGetSubmissionHistoryUrl = (
   params?: GetSubmissionHistoryParams,
 ) => {
@@ -784,10 +741,6 @@ export type GetSubmissionHistoryQueryResult = NonNullable<
 >;
 export type GetSubmissionHistoryQueryError = ErrorType<ErrorResponse>;
 
-/**
- * @summary Get submission history for current user
- */
-
 export function useGetSubmissionHistory<
   TData = Awaited<ReturnType<typeof getSubmissionHistory>>,
   TError = ErrorType<ErrorResponse>,
@@ -811,9 +764,6 @@ export function useGetSubmissionHistory<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-/**
- * @summary Get global leaderboard
- */
 export const getGetLeaderboardUrl = (params?: GetLeaderboardParams) => {
   const normalizedParams = new URLSearchParams();
 
@@ -878,10 +828,6 @@ export type GetLeaderboardQueryResult = NonNullable<
 >;
 export type GetLeaderboardQueryError = ErrorType<unknown>;
 
-/**
- * @summary Get global leaderboard
- */
-
 export function useGetLeaderboard<
   TData = Awaited<ReturnType<typeof getLeaderboard>>,
   TError = ErrorType<unknown>,
@@ -905,9 +851,102 @@ export function useGetLeaderboard<
   return { ...query, queryKey: queryOptions.queryKey };
 }
 
-/**
- * @summary Get user profile by ID
- */
+export const getGetWeeklyLeaderboardUrl = (
+  params?: GetWeeklyLeaderboardParams,
+) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? "null" : value.toString());
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0
+    ? `/api/leaderboard/weekly?${stringifiedParams}`
+    : `/api/leaderboard/weekly`;
+};
+
+export const getWeeklyLeaderboard = async (
+  params?: GetWeeklyLeaderboardParams,
+  options?: RequestInit,
+): Promise<WeeklyLeaderboardResponse> => {
+  return customFetch<WeeklyLeaderboardResponse>(
+    getGetWeeklyLeaderboardUrl(params),
+    {
+      ...options,
+      method: "GET",
+    },
+  );
+};
+
+export const getGetWeeklyLeaderboardQueryKey = (
+  params?: GetWeeklyLeaderboardParams,
+) => {
+  return [`/api/leaderboard/weekly`, ...(params ? [params] : [])] as const;
+};
+
+export const getGetWeeklyLeaderboardQueryOptions = <
+  TData = Awaited<ReturnType<typeof getWeeklyLeaderboard>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetWeeklyLeaderboardParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getWeeklyLeaderboard>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey =
+    queryOptions?.queryKey ?? getGetWeeklyLeaderboardQueryKey(params);
+
+  const queryFn: QueryFunction<
+    Awaited<ReturnType<typeof getWeeklyLeaderboard>>
+  > = ({ signal }) =>
+    getWeeklyLeaderboard(params, { signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getWeeklyLeaderboard>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetWeeklyLeaderboardQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getWeeklyLeaderboard>>
+>;
+export type GetWeeklyLeaderboardQueryError = ErrorType<unknown>;
+
+export function useGetWeeklyLeaderboard<
+  TData = Awaited<ReturnType<typeof getWeeklyLeaderboard>>,
+  TError = ErrorType<unknown>,
+>(
+  params?: GetWeeklyLeaderboardParams,
+  options?: {
+    query?: UseQueryOptions<
+      Awaited<ReturnType<typeof getWeeklyLeaderboard>>,
+      TError,
+      TData
+    >;
+    request?: SecondParameter<typeof customFetch>;
+  },
+): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetWeeklyLeaderboardQueryOptions(params, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
 export const getGetUserProfileUrl = (id: number) => {
   return `/api/users/${id}`;
 };
@@ -965,10 +1004,6 @@ export type GetUserProfileQueryResult = NonNullable<
 >;
 export type GetUserProfileQueryError = ErrorType<ErrorResponse>;
 
-/**
- * @summary Get user profile by ID
- */
-
 export function useGetUserProfile<
   TData = Awaited<ReturnType<typeof getUserProfile>>,
   TError = ErrorType<ErrorResponse>,
@@ -984,6 +1019,231 @@ export function useGetUserProfile<
   },
 ): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
   const queryOptions = getGetUserProfileQueryOptions(id, options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get all available badges
+ */
+export const getGetAllBadgesUrl = () => {
+  return `/api/gamification/badges`;
+};
+
+export const getAllBadges = async (
+  options?: RequestInit,
+): Promise<AllBadgesResponse> => {
+  return customFetch<AllBadgesResponse>(getGetAllBadgesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetAllBadgesQueryKey = () => {
+  return [`/api/gamification/badges`] as const;
+};
+
+export const getGetAllBadgesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getAllBadges>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAllBadges>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetAllBadgesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getAllBadges>>> = ({
+    signal,
+  }) => getAllBadges({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getAllBadges>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetAllBadgesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getAllBadges>>
+>;
+export type GetAllBadgesQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get all available badges
+ */
+
+export function useGetAllBadges<
+  TData = Awaited<ReturnType<typeof getAllBadges>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getAllBadges>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetAllBadgesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get current user earned badges
+ */
+export const getGetMyBadgesUrl = () => {
+  return `/api/gamification/badges/me`;
+};
+
+export const getMyBadges = async (
+  options?: RequestInit,
+): Promise<MyBadgesResponse> => {
+  return customFetch<MyBadgesResponse>(getGetMyBadgesUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetMyBadgesQueryKey = () => {
+  return [`/api/gamification/badges/me`] as const;
+};
+
+export const getGetMyBadgesQueryOptions = <
+  TData = Awaited<ReturnType<typeof getMyBadges>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyBadges>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetMyBadgesQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getMyBadges>>> = ({
+    signal,
+  }) => getMyBadges({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getMyBadges>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetMyBadgesQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getMyBadges>>
+>;
+export type GetMyBadgesQueryError = ErrorType<ErrorResponse>;
+
+/**
+ * @summary Get current user earned badges
+ */
+
+export function useGetMyBadges<
+  TData = Awaited<ReturnType<typeof getMyBadges>>,
+  TError = ErrorType<ErrorResponse>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getMyBadges>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetMyBadgesQueryOptions(options);
+
+  const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
+    queryKey: QueryKey;
+  };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+/**
+ * @summary Get today's daily quest problem
+ */
+export const getGetDailyQuestUrl = () => {
+  return `/api/gamification/daily-quest`;
+};
+
+export const getDailyQuest = async (
+  options?: RequestInit,
+): Promise<DailyQuestResponse> => {
+  return customFetch<DailyQuestResponse>(getGetDailyQuestUrl(), {
+    ...options,
+    method: "GET",
+  });
+};
+
+export const getGetDailyQuestQueryKey = () => {
+  return [`/api/gamification/daily-quest`] as const;
+};
+
+export const getGetDailyQuestQueryOptions = <
+  TData = Awaited<ReturnType<typeof getDailyQuest>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDailyQuest>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}) => {
+  const { query: queryOptions, request: requestOptions } = options ?? {};
+
+  const queryKey = queryOptions?.queryKey ?? getGetDailyQuestQueryKey();
+
+  const queryFn: QueryFunction<Awaited<ReturnType<typeof getDailyQuest>>> = ({
+    signal,
+  }) => getDailyQuest({ signal, ...requestOptions });
+
+  return { queryKey, queryFn, ...queryOptions } as UseQueryOptions<
+    Awaited<ReturnType<typeof getDailyQuest>>,
+    TError,
+    TData
+  > & { queryKey: QueryKey };
+};
+
+export type GetDailyQuestQueryResult = NonNullable<
+  Awaited<ReturnType<typeof getDailyQuest>>
+>;
+export type GetDailyQuestQueryError = ErrorType<unknown>;
+
+/**
+ * @summary Get today's daily quest problem
+ */
+
+export function useGetDailyQuest<
+  TData = Awaited<ReturnType<typeof getDailyQuest>>,
+  TError = ErrorType<unknown>,
+>(options?: {
+  query?: UseQueryOptions<
+    Awaited<ReturnType<typeof getDailyQuest>>,
+    TError,
+    TData
+  >;
+  request?: SecondParameter<typeof customFetch>;
+}): UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+  const queryOptions = getGetDailyQuestQueryOptions(options);
 
   const query = useQuery(queryOptions) as UseQueryResult<TData, TError> & {
     queryKey: QueryKey;

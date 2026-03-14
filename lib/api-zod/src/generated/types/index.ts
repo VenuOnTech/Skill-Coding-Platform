@@ -3,19 +3,27 @@
  * Do not edit manually.
  * Api
  * CodeQuest API specification
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 
+export * from "./allBadgesResponse";
 export * from "./authResponse";
+export * from "./badge";
+export * from "./badgeCategory";
+export * from "./badgeRarity";
+export * from "./dailyQuestResponse";
+export * from "./dailyQuestResponseDifficulty";
 export * from "./errorResponse";
 export * from "./getLeaderboardParams";
 export * from "./getProblemsDifficulty";
 export * from "./getProblemsParams";
 export * from "./getSubmissionHistoryParams";
+export * from "./getWeeklyLeaderboardParams";
 export * from "./healthStatus";
 export * from "./leaderboardEntry";
 export * from "./leaderboardResponse";
 export * from "./loginRequest";
+export * from "./myBadgesResponse";
 export * from "./problem";
 export * from "./problemDetail";
 export * from "./problemDifficulty";
@@ -34,3 +42,5 @@ export * from "./submitCodeRequest";
 export * from "./submitCodeRequestLanguage";
 export * from "./testCaseResult";
 export * from "./userProfile";
+export * from "./weeklyLeaderboardEntry";
+export * from "./weeklyLeaderboardResponse";

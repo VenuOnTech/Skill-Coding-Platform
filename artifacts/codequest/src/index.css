@@ -12,59 +12,79 @@
   --color-card-foreground: hsl(var(--card-foreground));
   --color-popover: hsl(var(--popover));
   --color-popover-foreground: hsl(var(--popover-foreground));
+  
   --color-primary: hsl(var(--primary));
   --color-primary-foreground: hsl(var(--primary-foreground));
+  
   --color-secondary: hsl(var(--secondary));
   --color-secondary-foreground: hsl(var(--secondary-foreground));
+  
   --color-muted: hsl(var(--muted));
   --color-muted-foreground: hsl(var(--muted-foreground));
+  
   --color-accent: hsl(var(--accent));
   --color-accent-foreground: hsl(var(--accent-foreground));
+  
   --color-destructive: hsl(var(--destructive));
   --color-destructive-foreground: hsl(var(--destructive-foreground));
+  
   --color-border: hsl(var(--border));
   --color-input: hsl(var(--input));
   --color-ring: hsl(var(--ring));
 
-  /* Difficulties */
+  /* Gamification Colors */
   --color-easy: hsl(var(--easy));
   --color-medium: hsl(var(--medium));
   --color-hard: hsl(var(--hard));
+  
+  --color-rarity-common: hsl(var(--rarity-common));
+  --color-rarity-rare: hsl(var(--rarity-rare));
+  --color-rarity-epic: hsl(var(--rarity-epic));
+  --color-rarity-legendary: hsl(var(--rarity-legendary));
 }
 
 :root {
-  /* Forced Dark Mode Theme */
-  --background: 240 10% 3.9%;
+  /* Ultra-dark, premium programming aesthetic */
+  --background: 240 10% 4%;
   --foreground: 0 0% 98%;
   
-  --card: 240 10% 6%;
+  --card: 240 11% 7%;
   --card-foreground: 0 0% 98%;
   
-  --popover: 240 10% 3.9%;
+  --popover: 240 10% 4%;
   --popover-foreground: 0 0% 98%;
   
-  --primary: 239 84% 67%;
+  /* Vibrant Indigo Primary */
+  --primary: 243 75% 59%;
   --primary-foreground: 0 0% 100%;
   
-  --secondary: 240 4.8% 15.9%;
+  --secondary: 240 5% 15%;
   --secondary-foreground: 0 0% 98%;
   
-  --muted: 240 3.7% 15.9%;
-  --muted-foreground: 240 5% 64.9%;
+  --muted: 240 5% 15%;
+  --muted-foreground: 240 5% 65%;
   
+  /* Electric Purple Accent */
   --accent: 280 84% 67%;
   --accent-foreground: 0 0% 98%;
   
   --destructive: 0 84% 60%;
   --destructive-foreground: 0 0% 98%;
   
-  --border: 240 3.7% 15.9%;
-  --input: 240 3.7% 15.9%;
-  --ring: 239 84% 67%;
+  --border: 240 5% 15%;
+  --input: 240 5% 15%;
+  --ring: 243 75% 59%;
 
+  /* Difficulty Levels */
   --easy: 142 71% 45%;
   --medium: 43 96% 56%;
   --hard: 0 84% 60%;
+
+  /* Rarity Colors */
+  --rarity-common: 240 5% 65%;
+  --rarity-rare: 217 91% 60%;
+  --rarity-epic: 280 84% 67%;
+  --rarity-legendary: 43 96% 56%;
 }
 
 @layer base {
@@ -83,11 +103,15 @@
 }
 
 .glass-panel {
-  @apply bg-card/60 backdrop-blur-xl border border-white/10 shadow-2xl;
+  @apply bg-card/60 backdrop-blur-xl border border-white/5 shadow-2xl;
 }
 
 .text-gradient {
   @apply bg-clip-text text-transparent bg-gradient-to-r from-primary via-accent to-pink-500;
+}
+
+.text-gradient-gold {
+  @apply bg-clip-text text-transparent bg-gradient-to-r from-yellow-300 via-yellow-500 to-amber-600;
 }
 
 /* Custom Scrollbar for dark theme */
@@ -104,4 +128,13 @@
 }
 ::-webkit-scrollbar-thumb:hover {
   background: hsl(var(--secondary));
+}
+
+/* Animated glow for interactive elements */
+@keyframes pulse-glow {
+  0%, 100% { opacity: 0.5; transform: scale(1); }
+  50% { opacity: 1; transform: scale(1.05); }
+}
+.animate-glow {
+  animation: pulse-glow 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
 }

@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * CodeQuest API specification
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 export interface HealthStatus {
   status: string;
@@ -30,14 +30,76 @@ export interface LoginRequest {
   password: string;
 }
 
+export type BadgeCategory = (typeof BadgeCategory)[keyof typeof BadgeCategory];
+
+export const BadgeCategory = {
+  solving: "solving",
+  xp: "xp",
+  streak: "streak",
+  quest: "quest",
+  level: "level",
+} as const;
+
+export type BadgeRarity = (typeof BadgeRarity)[keyof typeof BadgeRarity];
+
+export const BadgeRarity = {
+  common: "common",
+  rare: "rare",
+  epic: "epic",
+  legendary: "legendary",
+} as const;
+
+export interface Badge {
+  slug: string;
+  name: string;
+  description: string;
+  icon: string;
+  category: BadgeCategory;
+  rarity: BadgeRarity;
+  earned: boolean;
+  earnedAt?: string | null;
+}
+
+export interface AllBadgesResponse {
+  badges: Badge[];
+}
+
+export interface MyBadgesResponse {
+  badges: Badge[];
+  totalEarned: number;
+}
+
+export type DailyQuestResponseDifficulty =
+  (typeof DailyQuestResponseDifficulty)[keyof typeof DailyQuestResponseDifficulty];
+
+export const DailyQuestResponseDifficulty = {
+  Easy: "Easy",
+  Medium: "Medium",
+  Hard: "Hard",
+} as const;
+
+export interface DailyQuestResponse {
+  problemId: number;
+  problemTitle: string;
+  difficulty: DailyQuestResponseDifficulty;
+  topic: string;
+  bonusXp: number;
+  date: string;
+  completed: boolean;
+}
+
 export interface UserProfile {
   id: number;
   username: string;
   email: string;
   xp: number;
   level: number;
+  starRank: number;
   solvedCount: number;
+  streak: number;
+  dailyQuestsCompleted: number;
   rank?: number | null;
+  badges: Badge[];
   createdAt: string;
 }
 
@@ -64,6 +126,7 @@ export interface Problem {
   tags: string[];
   acceptanceRate?: number | null;
   solvedCount: number;
+  isDailyQuest: boolean;
 }
 
 export interface ProblemExample {
@@ -82,6 +145,7 @@ export type ProblemDetail = Problem & {
   constraints?: string | null;
   examples: ProblemExample[];
   starterCode: StarterCode;
+  bonusXp: number;
 };
 
 export interface ProblemsListResponse {
@@ -145,8 +209,16 @@ export interface SubmissionResult {
   passedCount: number;
   totalCount: number;
   xpEarned: number;
+  bonusXpEarned: number;
   results: TestCaseResult[];
   runtime?: number | null;
+  newBadges: Badge[];
+  streakUpdated: boolean;
+  newStreak: number;
+  newStarRank?: number | null;
+  isDailyQuest: boolean;
+  levelUp: boolean;
+  newLevel?: number | null;
 }
 
 export interface RunResult {
@@ -176,7 +248,9 @@ export interface LeaderboardEntry {
   username: string;
   xp: number;
   level: number;
+  starRank: number;
   solvedCount: number;
+  streak: number;
 }
 
 export interface LeaderboardResponse {
@@ -184,6 +258,26 @@ export interface LeaderboardResponse {
   total: number;
   page: number;
   limit: number;
+  currentUserRank?: number | null;
+}
+
+export interface WeeklyLeaderboardEntry {
+  rank: number;
+  userId: number;
+  username: string;
+  solvedThisWeek: number;
+  xpThisWeek: number;
+  level: number;
+  starRank: number;
+}
+
+export interface WeeklyLeaderboardResponse {
+  entries: WeeklyLeaderboardEntry[];
+  total: number;
+  page: number;
+  limit: number;
+  weekStart: string;
+  weekEnd: string;
   currentUserRank?: number | null;
 }
 
@@ -209,6 +303,11 @@ export type GetSubmissionHistoryParams = {
 };
 
 export type GetLeaderboardParams = {
+  page?: number;
+  limit?: number;
+};
+
+export type GetWeeklyLeaderboardParams = {
   page?: number;
   limit?: number;
 };

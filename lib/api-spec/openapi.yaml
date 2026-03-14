@@ -1,24 +1,19 @@
 openapi: 3.1.0
 info:
   title: Api
-  version: 0.1.0
+  version: 0.2.0
   description: CodeQuest API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
-    description: Health operations
   - name: auth
-    description: Authentication operations
   - name: problems
-    description: Problem library operations
   - name: submissions
-    description: Code submission operations
   - name: leaderboard
-    description: Leaderboard operations
   - name: users
-    description: User profile operations
+  - name: gamification
 
 paths:
   /healthz:
@@ -38,7 +33,6 @@ paths:
     post:
       operationId: register
       tags: [auth]
-      summary: Register a new user
       requestBody:
         required: true
         content:
@@ -59,7 +53,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
         "409":
-          description: User already exists
+          description: Conflict
           content:
             application/json:
               schema:
@@ -69,7 +63,6 @@ paths:
     post:
       operationId: login
       tags: [auth]
-      summary: Login a user
       requestBody:
         required: true
         content:
@@ -84,7 +77,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/AuthResponse"
         "401":
-          description: Invalid credentials
+          description: Unauthorized
           content:
             application/json:
               schema:
@@ -94,7 +87,6 @@ paths:
     get:
       operationId: getMe
       tags: [auth]
-      summary: Get current user profile
       security:
         - bearerAuth: []
       responses:
@@ -115,7 +107,6 @@ paths:
     get:
       operationId: getProblems
       tags: [problems]
-      summary: Get all problems
       parameters:
         - name: difficulty
           in: query
@@ -152,7 +143,6 @@ paths:
     get:
       operationId: getProblem
       tags: [problems]
-      summary: Get a problem by ID
       parameters:
         - name: id
           in: path
@@ -161,13 +151,13 @@ paths:
             type: integer
       responses:
         "200":
-          description: Problem details
+          description: Problem detail
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ProblemDetail"
         "404":
-          description: Problem not found
+          description: Not found
           content:
             application/json:
               schema:
@@ -177,7 +167,6 @@ paths:
     post:
       operationId: submitCode
       tags: [submissions]
-      summary: Submit code for a problem
       security:
         - bearerAuth: []
       requestBody:
@@ -199,18 +188,11 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
-        "404":
-          description: Problem not found
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/ErrorResponse"
 
   /submissions/run:
     post:
       operationId: runCode
       tags: [submissions]
-      summary: Run code against sample test cases
       security:
         - bearerAuth: []
       requestBody:
@@ -237,7 +219,6 @@ paths:
     get:
       operationId: getSubmissionHistory
       tags: [submissions]
-      summary: Get submission history for current user
       security:
         - bearerAuth: []
       parameters:
@@ -263,7 +244,6 @@ paths:
     get:
       operationId: getLeaderboard
       tags: [leaderboard]
-      summary: Get global leaderboard
       parameters:
         - name: page
           in: query
@@ -277,17 +257,39 @@ paths:
             default: 50
       responses:
         "200":
-          description: Leaderboard
+          description: Global leaderboard
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/LeaderboardResponse"
 
+  /leaderboard/weekly:
+    get:
+      operationId: getWeeklyLeaderboard
+      tags: [leaderboard]
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Weekly leaderboard (problems solved this week)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/WeeklyLeaderboardResponse"
+
   /users/{id}:
     get:
       operationId: getUserProfile
       tags: [users]
-      summary: Get user profile by ID
       parameters:
         - name: id
           in: path
@@ -302,11 +304,58 @@ paths:
               schema:
                 $ref: "#/components/schemas/UserProfile"
         "404":
-          description: User not found
+          description: Not found
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/ErrorResponse"
+
+  /gamification/badges:
+    get:
+      operationId: getAllBadges
+      tags: [gamification]
+      summary: Get all available badges
+      responses:
+        "200":
+          description: All badges with unlock status if authenticated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AllBadgesResponse"
+
+  /gamification/badges/me:
+    get:
+      operationId: getMyBadges
+      tags: [gamification]
+      security:
+        - bearerAuth: []
+      summary: Get current user earned badges
+      responses:
+        "200":
+          description: Earned badges
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/MyBadgesResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /gamification/daily-quest:
+    get:
+      operationId: getDailyQuest
+      tags: [gamification]
+      summary: Get today's daily quest problem
+      responses:
+        "200":
+          description: Daily quest
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DailyQuestResponse"
 
 components:
   securitySchemes:
@@ -321,8 +370,7 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
 
     ErrorResponse:
       type: object
@@ -331,8 +379,7 @@ components:
           type: string
         message:
           type: string
-      required:
-        - error
+      required: [error]
 
     RegisterRequest:
       type: object
@@ -347,10 +394,7 @@ components:
         password:
           type: string
           minLength: 6
-      required:
-        - username
-        - email
-        - password
+      required: [username, email, password]
 
     LoginRequest:
       type: object
@@ -360,20 +404,72 @@ components:
           format: email
         password:
           type: string
-      required:
-        - email
-        - password
+      required: [email, password]
 
-    AuthResponse:
+    Badge:
       type: object
       properties:
-        token:
+        slug:
           type: string
-        user:
-          $ref: "#/components/schemas/UserProfile"
-      required:
-        - token
-        - user
+        name:
+          type: string
+        description:
+          type: string
+        icon:
+          type: string
+        category:
+          type: string
+          enum: [solving, xp, streak, quest, level]
+        rarity:
+          type: string
+          enum: [common, rare, epic, legendary]
+        earned:
+          type: boolean
+        earnedAt:
+          type: string
+          format: date-time
+          nullable: true
+      required: [slug, name, description, icon, category, rarity, earned]
+
+    AllBadgesResponse:
+      type: object
+      properties:
+        badges:
+          type: array
+          items:
+            $ref: "#/components/schemas/Badge"
+      required: [badges]
+
+    MyBadgesResponse:
+      type: object
+      properties:
+        badges:
+          type: array
+          items:
+            $ref: "#/components/schemas/Badge"
+        totalEarned:
+          type: integer
+      required: [badges, totalEarned]
+
+    DailyQuestResponse:
+      type: object
+      properties:
+        problemId:
+          type: integer
+        problemTitle:
+          type: string
+        difficulty:
+          type: string
+          enum: [Easy, Medium, Hard]
+        topic:
+          type: string
+        bonusXp:
+          type: integer
+        date:
+          type: string
+        completed:
+          type: boolean
+      required: [problemId, problemTitle, difficulty, topic, bonusXp, date, completed]
 
     UserProfile:
       type: object
@@ -388,11 +484,21 @@ components:
           type: integer
         level:
           type: integer
+        starRank:
+          type: integer
         solvedCount:
+          type: integer
+        streak:
+          type: integer
+        dailyQuestsCompleted:
           type: integer
         rank:
           type: integer
           nullable: true
+        badges:
+          type: array
+          items:
+            $ref: "#/components/schemas/Badge"
         createdAt:
           type: string
           format: date-time
@@ -402,8 +508,21 @@ components:
         - email
         - xp
         - level
+        - starRank
         - solvedCount
+        - streak
+        - dailyQuestsCompleted
+        - badges
         - createdAt
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserProfile"
+      required: [token, user]
 
     Problem:
       type: object
@@ -428,14 +547,9 @@ components:
           nullable: true
         solvedCount:
           type: integer
-      required:
-        - id
-        - title
-        - slug
-        - difficulty
-        - topic
-        - tags
-        - solvedCount
+        isDailyQuest:
+          type: boolean
+      required: [id, title, slug, difficulty, topic, tags, solvedCount, isDailyQuest]
 
     ProblemDetail:
       allOf:
@@ -453,10 +567,9 @@ components:
                 $ref: "#/components/schemas/ProblemExample"
             starterCode:
               $ref: "#/components/schemas/StarterCode"
-          required:
-            - description
-            - examples
-            - starterCode
+            bonusXp:
+              type: integer
+          required: [description, examples, starterCode, bonusXp]
 
     ProblemExample:
       type: object
@@ -468,9 +581,7 @@ components:
         explanation:
           type: string
           nullable: true
-      required:
-        - input
-        - output
+      required: [input, output]
 
     StarterCode:
       type: object
@@ -479,9 +590,7 @@ components:
           type: string
         javascript:
           type: string
-      required:
-        - python
-        - javascript
+      required: [python, javascript]
 
     ProblemsListResponse:
       type: object
@@ -496,11 +605,7 @@ components:
           type: integer
         limit:
           type: integer
-      required:
-        - problems
-        - total
-        - page
-        - limit
+      required: [problems, total, page, limit]
 
     SubmitCodeRequest:
       type: object
@@ -512,10 +617,7 @@ components:
         language:
           type: string
           enum: [python, javascript]
-      required:
-        - problemId
-        - code
-        - language
+      required: [problemId, code, language]
 
     RunCodeRequest:
       type: object
@@ -527,10 +629,7 @@ components:
         language:
           type: string
           enum: [python, javascript]
-      required:
-        - problemId
-        - code
-        - language
+      required: [problemId, code, language]
 
     TestCaseResult:
       type: object
@@ -550,10 +649,7 @@ components:
         time:
           type: number
           nullable: true
-      required:
-        - passed
-        - input
-        - expectedOutput
+      required: [passed, input, expectedOutput]
 
     SubmissionResult:
       type: object
@@ -569,6 +665,8 @@ components:
           type: integer
         xpEarned:
           type: integer
+        bonusXpEarned:
+          type: integer
         results:
           type: array
           items:
@@ -576,13 +674,37 @@ components:
         runtime:
           type: number
           nullable: true
+        newBadges:
+          type: array
+          items:
+            $ref: "#/components/schemas/Badge"
+        streakUpdated:
+          type: boolean
+        newStreak:
+          type: integer
+        newStarRank:
+          type: integer
+          nullable: true
+        isDailyQuest:
+          type: boolean
+        levelUp:
+          type: boolean
+        newLevel:
+          type: integer
+          nullable: true
       required:
         - id
         - status
         - passedCount
         - totalCount
         - xpEarned
+        - bonusXpEarned
         - results
+        - newBadges
+        - streakUpdated
+        - newStreak
+        - isDailyQuest
+        - levelUp
 
     RunResult:
       type: object
@@ -593,9 +715,7 @@ components:
             $ref: "#/components/schemas/TestCaseResult"
         allPassed:
           type: boolean
-      required:
-        - results
-        - allPassed
+      required: [results, allPassed]
 
     Submission:
       type: object
@@ -620,15 +740,7 @@ components:
         submittedAt:
           type: string
           format: date-time
-      required:
-        - id
-        - problemId
-        - problemTitle
-        - language
-        - status
-        - passedCount
-        - totalCount
-        - submittedAt
+      required: [id, problemId, problemTitle, language, status, passedCount, totalCount, submittedAt]
 
     SubmissionHistoryResponse:
       type: object
@@ -637,8 +749,7 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/Submission"
-      required:
-        - submissions
+      required: [submissions]
 
     LeaderboardEntry:
       type: object
@@ -653,15 +764,13 @@ components:
           type: integer
         level:
           type: integer
+        starRank:
+          type: integer
         solvedCount:
           type: integer
-      required:
-        - rank
-        - userId
-        - username
-        - xp
-        - level
-        - solvedCount
+        streak:
+          type: integer
+      required: [rank, userId, username, xp, level, starRank, solvedCount, streak]
 
     LeaderboardResponse:
       type: object
@@ -679,8 +788,45 @@ components:
         currentUserRank:
           type: integer
           nullable: true
-      required:
-        - entries
-        - total
-        - page
-        - limit
+      required: [entries, total, page, limit]
+
+    WeeklyLeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+        userId:
+          type: integer
+        username:
+          type: string
+        solvedThisWeek:
+          type: integer
+        xpThisWeek:
+          type: integer
+        level:
+          type: integer
+        starRank:
+          type: integer
+      required: [rank, userId, username, solvedThisWeek, xpThisWeek, level, starRank]
+
+    WeeklyLeaderboardResponse:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/WeeklyLeaderboardEntry"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        weekStart:
+          type: string
+        weekEnd:
+          type: string
+        currentUserRank:
+          type: integer
+          nullable: true
+      required: [entries, total, page, limit, weekStart, weekEnd]

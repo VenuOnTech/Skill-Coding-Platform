@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * CodeQuest API specification
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import * as zod from "zod";
 
@@ -14,9 +14,6 @@ export const HealthCheckResponse = zod.object({
   status: zod.string(),
 });
 
-/**
- * @summary Register a new user
- */
 export const registerBodyUsernameMin = 3;
 export const registerBodyUsernameMax = 30;
 
@@ -31,9 +28,6 @@ export const RegisterBody = zod.object({
   password: zod.string().min(registerBodyPasswordMin),
 });
 
-/**
- * @summary Login a user
- */
 export const LoginBody = zod.object({
   email: zod.string().email(),
   password: zod.string(),
@@ -47,29 +41,53 @@ export const LoginResponse = zod.object({
     email: zod.string(),
     xp: zod.number(),
     level: zod.number(),
+    starRank: zod.number(),
     solvedCount: zod.number(),
+    streak: zod.number(),
+    dailyQuestsCompleted: zod.number(),
     rank: zod.number().nullish(),
+    badges: zod.array(
+      zod.object({
+        slug: zod.string(),
+        name: zod.string(),
+        description: zod.string(),
+        icon: zod.string(),
+        category: zod.enum(["solving", "xp", "streak", "quest", "level"]),
+        rarity: zod.enum(["common", "rare", "epic", "legendary"]),
+        earned: zod.boolean(),
+        earnedAt: zod.date().nullish(),
+      }),
+    ),
     createdAt: zod.date(),
   }),
 });
 
-/**
- * @summary Get current user profile
- */
 export const GetMeResponse = zod.object({
   id: zod.number(),
   username: zod.string(),
   email: zod.string(),
   xp: zod.number(),
   level: zod.number(),
+  starRank: zod.number(),
   solvedCount: zod.number(),
+  streak: zod.number(),
+  dailyQuestsCompleted: zod.number(),
   rank: zod.number().nullish(),
+  badges: zod.array(
+    zod.object({
+      slug: zod.string(),
+      name: zod.string(),
+      description: zod.string(),
+      icon: zod.string(),
+      category: zod.enum(["solving", "xp", "streak", "quest", "level"]),
+      rarity: zod.enum(["common", "rare", "epic", "legendary"]),
+      earned: zod.boolean(),
+      earnedAt: zod.date().nullish(),
+    }),
+  ),
   createdAt: zod.date(),
 });
 
-/**
- * @summary Get all problems
- */
 export const getProblemsQueryPageDefault = 1;
 export const getProblemsQueryLimitDefault = 20;
 
@@ -92,6 +110,7 @@ export const GetProblemsResponse = zod.object({
       tags: zod.array(zod.string()),
       acceptanceRate: zod.number().nullish(),
       solvedCount: zod.number(),
+      isDailyQuest: zod.boolean(),
     }),
   ),
   total: zod.number(),
@@ -99,9 +118,6 @@ export const GetProblemsResponse = zod.object({
   limit: zod.number(),
 });
 
-/**
- * @summary Get a problem by ID
- */
 export const GetProblemParams = zod.object({
   id: zod.coerce.number(),
 });
@@ -116,6 +132,7 @@ export const GetProblemResponse = zod
     tags: zod.array(zod.string()),
     acceptanceRate: zod.number().nullish(),
     solvedCount: zod.number(),
+    isDailyQuest: zod.boolean(),
   })
   .and(
     zod.object({
@@ -132,12 +149,10 @@ export const GetProblemResponse = zod
         python: zod.string(),
         javascript: zod.string(),
       }),
+      bonusXp: zod.number(),
     }),
   );
 
-/**
- * @summary Submit code for a problem
- */
 export const SubmitCodeBody = zod.object({
   problemId: zod.number(),
   code: zod.string(),
@@ -156,6 +171,7 @@ export const SubmitCodeResponse = zod.object({
   passedCount: zod.number(),
   totalCount: zod.number(),
   xpEarned: zod.number(),
+  bonusXpEarned: zod.number(),
   results: zod.array(
     zod.object({
       passed: zod.boolean(),
@@ -167,11 +183,26 @@ export const SubmitCodeResponse = zod.object({
     }),
   ),
   runtime: zod.number().nullish(),
+  newBadges: zod.array(
+    zod.object({
+      slug: zod.string(),
+      name: zod.string(),
+      description: zod.string(),
+      icon: zod.string(),
+      category: zod.enum(["solving", "xp", "streak", "quest", "level"]),
+      rarity: zod.enum(["common", "rare", "epic", "legendary"]),
+      earned: zod.boolean(),
+      earnedAt: zod.date().nullish(),
+    }),
+  ),
+  streakUpdated: zod.boolean(),
+  newStreak: zod.number(),
+  newStarRank: zod.number().nullish(),
+  isDailyQuest: zod.boolean(),
+  levelUp: zod.boolean(),
+  newLevel: zod.number().nullish(),
 });
 
-/**
- * @summary Run code against sample test cases
- */
 export const RunCodeBody = zod.object({
   problemId: zod.number(),
   code: zod.string(),
@@ -192,9 +223,6 @@ export const RunCodeResponse = zod.object({
   allPassed: zod.boolean(),
 });
 
-/**
- * @summary Get submission history for current user
- */
 export const GetSubmissionHistoryQueryParams = zod.object({
   problemId: zod.coerce.number().optional(),
 });
@@ -215,9 +243,6 @@ export const GetSubmissionHistoryResponse = zod.object({
   ),
 });
 
-/**
- * @summary Get global leaderboard
- */
 export const getLeaderboardQueryPageDefault = 1;
 export const getLeaderboardQueryLimitDefault = 50;
 
@@ -234,7 +259,9 @@ export const GetLeaderboardResponse = zod.object({
       username: zod.string(),
       xp: zod.number(),
       level: zod.number(),
+      starRank: zod.number(),
       solvedCount: zod.number(),
+      streak: zod.number(),
     }),
   ),
   total: zod.number(),
@@ -243,9 +270,34 @@ export const GetLeaderboardResponse = zod.object({
   currentUserRank: zod.number().nullish(),
 });
 
-/**
- * @summary Get user profile by ID
- */
+export const getWeeklyLeaderboardQueryPageDefault = 1;
+export const getWeeklyLeaderboardQueryLimitDefault = 50;
+
+export const GetWeeklyLeaderboardQueryParams = zod.object({
+  page: zod.coerce.number().default(getWeeklyLeaderboardQueryPageDefault),
+  limit: zod.coerce.number().default(getWeeklyLeaderboardQueryLimitDefault),
+});
+
+export const GetWeeklyLeaderboardResponse = zod.object({
+  entries: zod.array(
+    zod.object({
+      rank: zod.number(),
+      userId: zod.number(),
+      username: zod.string(),
+      solvedThisWeek: zod.number(),
+      xpThisWeek: zod.number(),
+      level: zod.number(),
+      starRank: zod.number(),
+    }),
+  ),
+  total: zod.number(),
+  page: zod.number(),
+  limit: zod.number(),
+  weekStart: zod.string(),
+  weekEnd: zod.string(),
+  currentUserRank: zod.number().nullish(),
+});
+
 export const GetUserProfileParams = zod.object({
   id: zod.coerce.number(),
 });
@@ -256,7 +308,72 @@ export const GetUserProfileResponse = zod.object({
   email: zod.string(),
   xp: zod.number(),
   level: zod.number(),
+  starRank: zod.number(),
   solvedCount: zod.number(),
+  streak: zod.number(),
+  dailyQuestsCompleted: zod.number(),
   rank: zod.number().nullish(),
+  badges: zod.array(
+    zod.object({
+      slug: zod.string(),
+      name: zod.string(),
+      description: zod.string(),
+      icon: zod.string(),
+      category: zod.enum(["solving", "xp", "streak", "quest", "level"]),
+      rarity: zod.enum(["common", "rare", "epic", "legendary"]),
+      earned: zod.boolean(),
+      earnedAt: zod.date().nullish(),
+    }),
+  ),
   createdAt: zod.date(),
+});
+
+/**
+ * @summary Get all available badges
+ */
+export const GetAllBadgesResponse = zod.object({
+  badges: zod.array(
+    zod.object({
+      slug: zod.string(),
+      name: zod.string(),
+      description: zod.string(),
+      icon: zod.string(),
+      category: zod.enum(["solving", "xp", "streak", "quest", "level"]),
+      rarity: zod.enum(["common", "rare", "epic", "legendary"]),
+      earned: zod.boolean(),
+      earnedAt: zod.date().nullish(),
+    }),
+  ),
+});
+
+/**
+ * @summary Get current user earned badges
+ */
+export const GetMyBadgesResponse = zod.object({
+  badges: zod.array(
+    zod.object({
+      slug: zod.string(),
+      name: zod.string(),
+      description: zod.string(),
+      icon: zod.string(),
+      category: zod.enum(["solving", "xp", "streak", "quest", "level"]),
+      rarity: zod.enum(["common", "rare", "epic", "legendary"]),
+      earned: zod.boolean(),
+      earnedAt: zod.date().nullish(),
+    }),
+  ),
+  totalEarned: zod.number(),
+});
+
+/**
+ * @summary Get today's daily quest problem
+ */
+export const GetDailyQuestResponse = zod.object({
+  problemId: zod.number(),
+  problemTitle: zod.string(),
+  difficulty: zod.enum(["Easy", "Medium", "Hard"]),
+  topic: zod.string(),
+  bonusXp: zod.number(),
+  date: zod.string(),
+  completed: zod.boolean(),
 });

@@ -1,194 +1,244 @@
-import React, { useState, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useRoute } from "wouter";
+import { useGetProblem, useSubmitCode, useRunCode, SubmitCodeRequestLanguage } from "@workspace/api-client-react";
 import Editor from "@monaco-editor/react";
-import { useGetProblem, useRunCode, useSubmitCode, RunCodeRequestLanguage, SubmitCodeRequestLanguage } from "@workspace/api-client-react";
-import { Badge, Button } from "@/components/ui";
-import { Play, Send, Loader2, CheckCircle2, XCircle, Clock, Info } from "lucide-react";
+import { Button, Badge, Card } from "@/components/ui";
+import { Play, Send, Zap, CheckCircle2, XCircle, Clock, Activity, ArrowRight } from "lucide-react";
+import { cn } from "@/lib/utils";
+import { toast } from "@/hooks/use-toast";
+import { useCelebrationStore } from "@/hooks/use-celebration";
 import { useAuth } from "@/contexts/AuthContext";
 
 export default function ProblemDetail() {
   const [, params] = useRoute("/problems/:id");
-  const id = Number(params?.id);
-  const { user } = useAuth();
+  const problemId = parseInt(params?.id || "0", 10);
   
-  const { data: problem, isLoading, error } = useGetProblem(id);
+  const { data: problem, isLoading } = useGetProblem(problemId, { query: { enabled: !!problemId } });
   
-  const [language, setLanguage] = useState<RunCodeRequestLanguage>("python");
-  const [code, setCode] = useState<string>("");
-  const [activeTab, setActiveTab] = useState<"description" | "submissions">("description");
-  const [outputTab, setActiveOutputTab] = useState<"testcases" | "result">("testcases");
+  const [code, setCode] = useState("");
+  const [language, setLanguage] = useState<SubmitCodeRequestLanguage>("python");
+  const [activeTab, setActiveTab] = useState<"description" | "results">("description");
+  const [runResult, setRunResult] = useState<any>(null);
 
-  const runCodeMutation = useRunCode();
-  const submitCodeMutation = useSubmitCode();
+  const { updateLocalUser } = useAuth();
+  const { showLevelUp, showBadges } = useCelebrationStore();
 
   useEffect(() => {
-    if (problem) {
-      setCode(language === "python" ? problem.starterCode.python : problem.starterCode.javascript);
+    if (problem && !code) {
+      setCode(problem.starterCode[language]);
     }
   }, [problem, language]);
 
-  const handleRun = async () => {
-    if (!code) return;
-    setActiveOutputTab("result");
-    await runCodeMutation.mutateAsync({ data: { problemId: id, code, language } });
+  const handleLanguageChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+    const newLang = e.target.value as SubmitCodeRequestLanguage;
+    setLanguage(newLang);
+    if (problem) {
+      setCode(problem.starterCode[newLang]);
+    }
   };
 
-  const handleSubmit = async () => {
-    if (!code || !user) return; // Need auth check visually
-    setActiveOutputTab("result");
-    await submitCodeMutation.mutateAsync({ data: { problemId: id, code, language: language as SubmitCodeRequestLanguage } });
-  };
-
-  if (isLoading) return <div className="flex-1 flex items-center justify-center"><Loader2 className="w-8 h-8 animate-spin text-primary" /></div>;
-  if (error || !problem) return <div className="flex-1 flex items-center justify-center text-destructive">Failed to load problem.</div>;
-
-  const renderResult = () => {
-    if (runCodeMutation.isPending || submitCodeMutation.isPending) {
-      return <div className="p-6 flex items-center gap-3 text-muted-foreground"><Loader2 className="w-5 h-5 animate-spin" /> Executing code...</div>;
+  const runMutation = useRunCode({
+    mutation: {
+      onSuccess: (data) => {
+        setRunResult({ type: "run", data });
+        setActiveTab("results");
+        toast({ title: data.allPassed ? "Sample Tests Passed!" : "Some tests failed", type: data.allPassed ? "success" : "error" });
+      },
+      onError: (err) => toast({ title: "Run Failed", description: err.message, type: "error" })
     }
+  });
 
-    if (submitCodeMutation.data) {
-      const res = submitCodeMutation.data;
-      const isAccepted = res.status === "Accepted";
-      return (
-        <div className="p-6 space-y-4">
-          <div className="flex items-center justify-between border-b border-border pb-4">
-            <h3 className={`text-xl font-bold flex items-center gap-2 ${isAccepted ? "text-green-500" : "text-destructive"}`}>
-              {isAccepted ? <CheckCircle2 className="w-6 h-6" /> : <XCircle className="w-6 h-6" />}
-              {res.status}
-            </h3>
-            {isAccepted && <Badge variant="default" className="bg-green-500/20 text-green-500 border-none">+{res.xpEarned} XP</Badge>}
-          </div>
-          <div className="flex gap-6 text-sm text-muted-foreground">
-            <div>Passed: <span className="text-foreground font-mono">{res.passedCount}/{res.totalCount}</span></div>
-            {res.runtime && <div>Runtime: <span className="text-foreground font-mono">{res.runtime}ms</span></div>}
-          </div>
-        </div>
-      );
+  const submitMutation = useSubmitCode({
+    mutation: {
+      onSuccess: (data) => {
+        setRunResult({ type: "submit", data });
+        setActiveTab("results");
+        
+        if (data.status === "Accepted") {
+          toast({ title: "Accepted!", description: `Passed ${data.passedCount}/${data.totalCount} test cases.`, type: "success" });
+          
+          if (data.xpEarned > 0 || data.bonusXpEarned > 0) {
+             const totalXp = data.xpEarned + data.bonusXpEarned;
+             toast({ title: `Earned +${totalXp} XP!`, type: "gamification" });
+             
+             updateLocalUser({ 
+               xp: (prev) => (prev || 0) + totalXp,
+               streak: data.newStreak,
+               starRank: data.newStarRank || undefined
+             });
+          }
+          
+          if (data.isDailyQuest && data.bonusXpEarned > 0) {
+             toast({ title: "Daily Quest Complete!", description: `+${data.bonusXpEarned} Bonus XP`, type: "gamification" });
+          }
+
+          if (data.streakUpdated) {
+             toast({ title: "🔥 Streak Extended!", description: `You're on a ${data.newStreak} day streak!`, type: "gamification" });
+          }
+
+          if (data.newStarRank) {
+             toast({ title: "⭐ Star Rank Upgraded!", description: "You've earned a new star!", type: "gamification" });
+          }
+
+          if (data.levelUp && data.newLevel) {
+             showLevelUp(data.newLevel - 1, data.newLevel);
+          } else if (data.newBadges && data.newBadges.length > 0) {
+             showBadges(data.newBadges);
+          }
+        } else {
+          toast({ title: "Submission Failed", description: data.status, type: "error" });
+        }
+      },
+      onError: (err) => toast({ title: "Submission Error", description: err.message, type: "error" })
     }
+  });
 
-    if (runCodeMutation.data) {
-      const res = runCodeMutation.data;
-      return (
-        <div className="p-4 space-y-6 max-h-[300px] overflow-y-auto">
-          {res.results.map((tc, idx) => (
-            <div key={idx} className="space-y-2 bg-background p-4 rounded-lg border border-border">
-              <div className="flex items-center gap-2 font-medium">
-                {tc.passed ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <XCircle className="w-4 h-4 text-destructive" />}
-                Case {idx + 1}
-              </div>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-2 font-mono text-xs">
-                <div className="space-y-1">
-                  <div className="text-muted-foreground">Input:</div>
-                  <div className="bg-muted p-2 rounded">{tc.input}</div>
-                </div>
-                <div className="space-y-1">
-                  <div className="text-muted-foreground">Expected:</div>
-                  <div className="bg-muted p-2 rounded">{tc.expectedOutput}</div>
-                </div>
-                {!tc.passed && tc.actualOutput && (
-                  <div className="col-span-1 md:col-span-2 space-y-1">
-                    <div className="text-destructive">Actual:</div>
-                    <div className="bg-destructive/10 text-destructive p-2 rounded border border-destructive/20">{tc.actualOutput}</div>
-                  </div>
-                )}
-                {tc.error && (
-                  <div className="col-span-1 md:col-span-2 space-y-1 mt-2">
-                    <div className="text-destructive font-bold">Error:</div>
-                    <div className="bg-destructive/10 text-destructive p-3 rounded border border-destructive/20 overflow-x-auto whitespace-pre-wrap">{tc.error}</div>
-                  </div>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
-      );
-    }
-
-    return (
-      <div className="p-6 text-muted-foreground flex flex-col items-center justify-center h-full gap-2">
-        <Info className="w-8 h-8 opacity-50" />
-        <p>Run your code to see results here.</p>
-      </div>
-    );
-  };
+  if (isLoading || !problem) return <div className="p-8 text-center">Loading...</div>;
 
   return (
-    <div className="flex-1 flex flex-col md:flex-row h-[calc(100vh-64px)] overflow-hidden">
-      {/* Left Pane - Description */}
-      <div className="w-full md:w-5/12 flex flex-col border-r border-border bg-card">
-        <div className="flex items-center gap-6 px-4 border-b border-border bg-background/50 h-12 shrink-0">
-          <button onClick={() => setActiveTab("description")} className={`h-full text-sm font-medium border-b-2 transition-colors ${activeTab === "description" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>Description</button>
-          <button onClick={() => setActiveTab("submissions")} className={`h-full text-sm font-medium border-b-2 transition-colors ${activeTab === "submissions" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"}`}>Submissions</button>
+    <div className="flex flex-col md:flex-row h-[calc(100vh-4rem)]">
+      {/* Left Panel */}
+      <div className="w-full md:w-1/2 flex flex-col border-r border-border bg-card/30">
+        <div className="flex border-b border-border bg-background">
+          <button 
+            className={cn("px-6 py-3 text-sm font-medium border-b-2 transition-colors", activeTab === "description" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}
+            onClick={() => setActiveTab("description")}
+          >
+            Description
+          </button>
+          <button 
+            className={cn("px-6 py-3 text-sm font-medium border-b-2 transition-colors", activeTab === "results" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}
+            onClick={() => setActiveTab("results")}
+          >
+            Results
+          </button>
         </div>
-        
-        <div className="flex-1 overflow-y-auto p-6">
+
+        <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
           {activeTab === "description" && (
             <div className="space-y-6">
               <div>
-                <h1 className="text-2xl font-bold mb-2">{problem.id}. {problem.title}</h1>
-                <div className="flex items-center gap-3">
+                <h1 className="text-3xl font-bold text-foreground mb-3">{problem.id}. {problem.title}</h1>
+                <div className="flex flex-wrap items-center gap-2 mb-6">
                   <Badge variant={problem.difficulty.toLowerCase() as any}>{problem.difficulty}</Badge>
-                  <span className="text-xs text-muted-foreground bg-muted px-2 py-1 rounded-md">{problem.topic}</span>
+                  <Badge variant="secondary">{problem.topic}</Badge>
+                  {problem.isDailyQuest && (
+                    <Badge variant="quest" className="ml-2">
+                      <Zap className="w-3 h-3 mr-1" /> Daily Quest (+{problem.bonusXp} XP)
+                    </Badge>
+                  )}
                 </div>
               </div>
               
-              <div className="prose prose-invert max-w-none text-muted-foreground prose-p:leading-relaxed prose-pre:bg-muted prose-pre:border prose-pre:border-border">
-                {/* Normally we'd use a markdown renderer, assuming plain text / simple HTML for now */}
+              <div className="prose prose-invert max-w-none">
                 <div dangerouslySetInnerHTML={{ __html: problem.description.replace(/\n/g, '<br/>') }} />
               </div>
 
               {problem.examples.map((ex, i) => (
-                <div key={i} className="space-y-2">
-                  <h3 className="font-semibold text-foreground">Example {i + 1}:</h3>
-                  <div className="bg-muted p-4 rounded-xl font-mono text-sm space-y-1">
-                    <div><span className="text-muted-foreground font-bold">Input:</span> {ex.input}</div>
-                    <div><span className="text-muted-foreground font-bold">Output:</span> {ex.output}</div>
-                    {ex.explanation && <div><span className="text-muted-foreground font-bold">Explanation:</span> {ex.explanation}</div>}
+                <div key={i} className="mt-8">
+                  <h3 className="font-bold text-foreground mb-2">Example {i + 1}:</h3>
+                  <div className="bg-muted/50 rounded-xl p-4 font-mono text-sm border border-border/50">
+                    <div><span className="text-muted-foreground">Input:</span> {ex.input}</div>
+                    <div><span className="text-muted-foreground">Output:</span> {ex.output}</div>
+                    {ex.explanation && <div className="mt-2 text-muted-foreground"><span className="text-foreground/70">Explanation:</span> {ex.explanation}</div>}
                   </div>
                 </div>
               ))}
 
               {problem.constraints && (
-                <div className="space-y-2">
-                  <h3 className="font-semibold text-foreground">Constraints:</h3>
-                  <div className="bg-muted p-4 rounded-xl font-mono text-sm">
+                <div className="mt-8">
+                  <h3 className="font-bold text-foreground mb-2">Constraints:</h3>
+                  <div className="bg-muted/50 rounded-xl p-4 font-mono text-sm border border-border/50">
                     <div dangerouslySetInnerHTML={{ __html: problem.constraints.replace(/\n/g, '<br/>') }} />
                   </div>
                 </div>
               )}
             </div>
           )}
-          {activeTab === "submissions" && (
-            <div className="text-center text-muted-foreground pt-10">
-              {user ? "View your submission history in your profile." : "Login to view submissions."}
+
+          {activeTab === "results" && runResult && (
+            <div className="space-y-6 animate-fade-in">
+              {runResult.type === "submit" && (
+                <div className={cn("p-6 rounded-2xl border flex flex-col items-center text-center", runResult.data.status === "Accepted" ? "bg-green-500/10 border-green-500/30 text-green-400" : "bg-red-500/10 border-red-500/30 text-red-400")}>
+                  {runResult.data.status === "Accepted" ? <Trophy className="w-12 h-12 mb-3" /> : <XCircle className="w-12 h-12 mb-3" />}
+                  <h2 className="text-2xl font-bold mb-1">{runResult.data.status}</h2>
+                  <p className="opacity-80 mb-4">{runResult.data.passedCount} / {runResult.data.totalCount} test cases passed</p>
+                  
+                  {runResult.data.status === "Accepted" && (
+                    <div className="flex gap-4">
+                       <Badge variant="outline" className="bg-background/50 py-1.5"><Activity className="w-4 h-4 mr-2" /> +{runResult.data.xpEarned} XP</Badge>
+                       {runResult.data.bonusXpEarned > 0 && (
+                         <Badge variant="quest" className="py-1.5"><Zap className="w-4 h-4 mr-2" /> +{runResult.data.bonusXpEarned} Bonus XP</Badge>
+                       )}
+                       <Badge variant="outline" className="bg-background/50 py-1.5"><Clock className="w-4 h-4 mr-2" /> {runResult.data.runtime?.toFixed(2)}ms</Badge>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              <h3 className="font-bold text-lg border-b border-border pb-2">Test Cases</h3>
+              <div className="space-y-4">
+                {runResult.data.results.map((res: any, i: number) => (
+                  <Card key={i} className={cn("overflow-hidden border-l-4", res.passed ? "border-l-green-500" : "border-l-red-500")}>
+                    <div className="bg-muted/30 p-3 px-4 flex items-center justify-between">
+                      <div className="font-medium flex items-center gap-2">
+                        {res.passed ? <CheckCircle2 className="w-4 h-4 text-green-500" /> : <XCircle className="w-4 h-4 text-red-500" />}
+                        Case {i + 1}
+                      </div>
+                      {res.time && <span className="text-xs text-muted-foreground">{res.time}ms</span>}
+                    </div>
+                    {!res.passed && (
+                      <div className="p-4 font-mono text-sm space-y-3 bg-background">
+                        <div>
+                          <div className="text-muted-foreground mb-1">Input:</div>
+                          <div className="bg-muted/50 p-2 rounded">{res.input}</div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground mb-1">Expected:</div>
+                          <div className="bg-muted/50 p-2 rounded">{res.expectedOutput}</div>
+                        </div>
+                        <div>
+                          <div className="text-muted-foreground mb-1">Actual:</div>
+                          <div className="bg-red-500/10 text-red-400 p-2 rounded border border-red-500/20">{res.actualOutput || "No output"}</div>
+                        </div>
+                        {res.error && (
+                          <div>
+                            <div className="text-muted-foreground mb-1">Error:</div>
+                            <div className="bg-red-500/10 text-red-400 p-2 rounded border border-red-500/20 whitespace-pre-wrap">{res.error}</div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </Card>
+                ))}
+              </div>
             </div>
           )}
         </div>
       </div>
 
-      {/* Right Pane - Editor & Console */}
-      <div className="w-full md:w-7/12 flex flex-col bg-background relative">
-        <div className="flex items-center justify-between px-4 border-b border-border h-12 shrink-0 bg-card/50">
+      {/* Right Panel - Editor */}
+      <div className="w-full md:w-1/2 flex flex-col bg-background">
+        <div className="flex items-center justify-between p-2 border-b border-border bg-card/50">
           <select 
+            className="bg-secondary text-secondary-foreground border-none text-sm rounded-lg px-3 py-1.5 focus:ring-0 outline-none cursor-pointer"
             value={language}
-            onChange={(e) => setLanguage(e.target.value as RunCodeRequestLanguage)}
-            className="bg-transparent text-sm font-medium focus:outline-none focus:ring-0 text-foreground"
+            onChange={handleLanguageChange}
           >
-            <option value="python" className="bg-background">Python 3</option>
-            <option value="javascript" className="bg-background">JavaScript (Node)</option>
+            <option value="python">Python 3</option>
+            <option value="javascript">JavaScript</option>
           </select>
           
-          <div className="flex items-center gap-2">
-            <Button size="sm" variant="secondary" onClick={handleRun} disabled={runCodeMutation.isPending || submitCodeMutation.isPending}>
+          <div className="flex gap-2">
+            <Button variant="secondary" size="sm" onClick={() => runMutation.mutate({ data: { problemId, code, language } })} disabled={runMutation.isPending || submitMutation.isPending}>
               <Play className="w-4 h-4 mr-1.5" /> Run
             </Button>
-            <Button size="sm" variant="glow" onClick={handleSubmit} disabled={runCodeMutation.isPending || submitCodeMutation.isPending}>
+            <Button variant="gamified" size="sm" onClick={() => submitMutation.mutate({ data: { problemId, code, language } })} disabled={runMutation.isPending || submitMutation.isPending}>
               <Send className="w-4 h-4 mr-1.5" /> Submit
             </Button>
           </div>
         </div>
-
+        
         <div className="flex-1 relative">
           <Editor
             height="100%"
@@ -199,37 +249,21 @@ export default function ProblemDetail() {
             options={{
               minimap: { enabled: false },
               fontSize: 14,
-              fontFamily: "'Fira Code', monospace",
+              fontFamily: 'Fira Code',
               padding: { top: 16 },
               scrollBeyondLastLine: false,
               roundedSelection: false,
+              overviewRulerBorder: false,
             }}
           />
-        </div>
-
-        {/* Output Console Pane */}
-        <div className="h-64 border-t border-border flex flex-col bg-card shrink-0">
-          <div className="flex items-center gap-4 px-4 border-b border-border h-10 shrink-0 bg-background/50">
-            <div className="text-xs font-semibold text-muted-foreground tracking-wider uppercase">Console</div>
-            <div className="flex items-center gap-4">
-              <button onClick={() => setActiveOutputTab("testcases")} className={`text-sm ${outputTab === "testcases" ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}>Testcases</button>
-              <button onClick={() => setActiveOutputTab("result")} className={`text-sm ${outputTab === "result" ? "text-foreground font-medium" : "text-muted-foreground hover:text-foreground"}`}>Result</button>
-            </div>
-          </div>
-          <div className="flex-1 overflow-hidden relative">
-            {outputTab === "testcases" ? (
-              <div className="p-4 overflow-y-auto h-full space-y-4">
-                {problem.examples.map((ex, i) => (
-                  <div key={i} className="space-y-1">
-                    <div className="text-xs text-muted-foreground font-bold">Case {i+1}</div>
-                    <div className="font-mono text-sm bg-background p-2 rounded border border-border">{ex.input}</div>
-                  </div>
-                ))}
+          {(runMutation.isPending || submitMutation.isPending) && (
+            <div className="absolute inset-0 bg-background/50 backdrop-blur-sm flex items-center justify-center z-10">
+              <div className="glass-panel px-6 py-4 rounded-full flex items-center gap-3">
+                <div className="w-5 h-5 rounded-full border-2 border-primary border-t-transparent animate-spin" />
+                <span className="font-medium text-foreground">Executing Code...</span>
               </div>
-            ) : (
-              renderResult()
-            )}
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

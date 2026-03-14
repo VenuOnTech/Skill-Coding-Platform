@@ -3,8 +3,9 @@
  * Do not edit manually.
  * Api
  * CodeQuest API specification
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
+import type { Badge } from "./badge";
 
 export interface UserProfile {
   id: number;
@@ -12,7 +13,11 @@ export interface UserProfile {
   email: string;
   xp: number;
   level: number;
+  starRank: number;
   solvedCount: number;
+  streak: number;
+  dailyQuestsCompleted: number;
   rank?: number | null;
+  badges: Badge[];
   createdAt: Date;
 }

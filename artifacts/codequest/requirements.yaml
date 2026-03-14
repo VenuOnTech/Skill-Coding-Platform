@@ -1,21 +1,18 @@
 packages:
-  "@monaco-editor/react": "Code editor component for problem solving"
-  "framer-motion": "Animations and page transitions"
-  "date-fns": "Human-readable date formatting for submissions"
-  "react-hook-form": "Form state management"
-  "@hookform/resolvers": "Zod validation for forms"
-  "clsx": "Utility for constructing className strings"
-  "tailwind-merge": "Utility to merge tailwind classes"
+  "framer-motion": "For smooth UI transitions, glassmorphic interactions, and gamification celebration modals"
+  "canvas-confetti": "For celebratory confetti effects on level ups and badge unlocks"
+  "@types/canvas-confetti": "TypeScript definitions for canvas-confetti"
+  "@monaco-editor/react": "Code editor component for the problem-solving interface"
+  "clsx": "Utility for constructing className strings conditionally"
+  "tailwind-merge": "Utility function to efficiently merge Tailwind CSS classes in JS"
+  "date-fns": "For formatting dates in submission history and daily quest"
+  "zustand": "For simple and robust global state management for toasts and gamification overlays"
+  "lucide-react": "Beautiful, consistent icons for gamification UI elements"
 
 images:
   - path: "artifacts/codequest/public/images/hero-bg.png"
-    description: "Abstract dark theme geometric mesh with glowing purple and indigo neon lines, tech and coding vibe, deep space background"
+    description: "Dark, sleek, futuristic competitive programming background with abstract glowing geometric shapes and code-like structures in deep vibrant indigo and purple"
     aspect_ratio: "16:9"
   - path: "artifacts/codequest/public/images/logo.png"
-    description: "Minimal modern geometric code brackets logo mark in vibrant purple gradient on completely transparent background"
+    description: "Minimalist glowing geometric logo for a competitive programming platform, dark background"
     aspect_ratio: "1:1"
-
-notes:
-  - API base URL is /api
-  - Using a global fetch interceptor in App.tsx to automatically inject the codequest_token from localStorage as a Bearer token
-  - Using @workspace/api-client-react for TanStack Query hooks

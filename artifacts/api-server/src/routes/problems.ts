@@ -3,6 +3,7 @@ import { db } from "@workspace/db";
 import { problemsTable } from "@workspace/db/schema";
 import { eq, like, and, SQL } from "drizzle-orm";
 import { GetProblemsQueryParams, GetProblemParams } from "@workspace/api-zod";
+import { getDailyQuestProblemId, computeXP } from "../lib/gamification.js";
 
 const router: IRouter = Router();
 
@@ -23,14 +24,12 @@ router.get("/", async (req, res) => {
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
   const [problems, countResult] = await Promise.all([
-    db
-      .select()
-      .from(problemsTable)
-      .where(where)
-      .limit(limit)
-      .offset((page - 1) * limit),
+    db.select().from(problemsTable).where(where).limit(limit).offset((page - 1) * limit),
     db.select({ id: problemsTable.id }).from(problemsTable).where(where),
   ]);
+
+  const allIds = await db.select({ id: problemsTable.id }).from(problemsTable);
+  const dailyId = getDailyQuestProblemId(allIds.map((p) => p.id));
 
   res.json({
     problems: problems.map((p) => ({
@@ -42,6 +41,7 @@ router.get("/", async (req, res) => {
       tags: p.tags || [],
       acceptanceRate: p.acceptanceRate,
       solvedCount: p.solvedCount,
+      isDailyQuest: p.id === dailyId,
     })),
     total: countResult.length,
     page,
@@ -67,6 +67,11 @@ router.get("/:id", async (req, res) => {
     return;
   }
 
+  const allIds = await db.select({ id: problemsTable.id }).from(problemsTable);
+  const dailyId = getDailyQuestProblemId(allIds.map((p) => p.id));
+  const isDailyQuest = problem.id === dailyId;
+  const bonusXp = isDailyQuest ? Math.floor(computeXP(problem.difficulty) * 0.5) : 0;
+
   res.json({
     id: problem.id,
     title: problem.title,
@@ -76,6 +81,8 @@ router.get("/:id", async (req, res) => {
     tags: problem.tags || [],
     acceptanceRate: problem.acceptanceRate,
     solvedCount: problem.solvedCount,
+    isDailyQuest,
+    bonusXp,
     description: problem.description,
     constraints: problem.constraints,
     examples: problem.examples || [],

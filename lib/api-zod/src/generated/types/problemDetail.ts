@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * CodeQuest API specification
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import type { Problem } from "./problem";
 import type { ProblemExample } from "./problemExample";
@@ -14,4 +14,5 @@ export type ProblemDetail = Problem & {
   constraints?: string | null;
   examples: ProblemExample[];
   starterCode: StarterCode;
+  bonusXp: number;
 };

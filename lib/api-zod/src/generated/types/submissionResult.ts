@@ -3,8 +3,9 @@
  * Do not edit manually.
  * Api
  * CodeQuest API specification
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
+import type { Badge } from "./badge";
 import type { SubmissionResultStatus } from "./submissionResultStatus";
 import type { TestCaseResult } from "./testCaseResult";
 
@@ -14,6 +15,14 @@ export interface SubmissionResult {
   passedCount: number;
   totalCount: number;
   xpEarned: number;
+  bonusXpEarned: number;
   results: TestCaseResult[];
   runtime?: number | null;
+  newBadges: Badge[];
+  streakUpdated: boolean;
+  newStreak: number;
+  newStarRank?: number | null;
+  isDailyQuest: boolean;
+  levelUp: boolean;
+  newLevel?: number | null;
 }

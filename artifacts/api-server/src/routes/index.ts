@@ -5,6 +5,7 @@ import problemsRouter from "./problems.js";
 import submissionsRouter from "./submissions.js";
 import leaderboardRouter from "./leaderboard.js";
 import usersRouter from "./users.js";
+import gamificationRouter from "./gamification.js";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use("/problems", problemsRouter);
 router.use("/submissions", submissionsRouter);
 router.use("/leaderboard", leaderboardRouter);
 router.use("/users", usersRouter);
+router.use("/gamification", gamificationRouter);
 
 export default router;

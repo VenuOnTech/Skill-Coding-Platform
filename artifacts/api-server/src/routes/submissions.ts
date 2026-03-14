@@ -10,31 +10,17 @@ import { eq, and, desc } from "drizzle-orm";
 import { SubmitCodeBody, RunCodeBody, GetSubmissionHistoryQueryParams } from "@workspace/api-zod";
 import { authenticateToken, type AuthRequest } from "../middlewares/auth.js";
 import { runTestCase } from "../lib/judge0.js";
+import {
+  computeXP,
+  computeLevel,
+  computeStarRank,
+  updateStreak,
+  checkAndAwardBadges,
+  getDailyQuestProblemId,
+  getUserBadges,
+} from "../lib/gamification.js";
 
 const router: IRouter = Router();
-
-function computeXP(difficulty: string, passedCount: number, totalCount: number): number {
-  if (passedCount < totalCount) return 0;
-  const xpMap: Record<string, number> = {
-    Easy: 50,
-    Medium: 100,
-    Hard: 200,
-  };
-  return xpMap[difficulty] || 50;
-}
-
-function computeLevel(xp: number): number {
-  if (xp < 100) return 1;
-  if (xp < 300) return 2;
-  if (xp < 600) return 3;
-  if (xp < 1000) return 4;
-  if (xp < 1500) return 5;
-  if (xp < 2100) return 6;
-  if (xp < 2800) return 7;
-  if (xp < 3600) return 8;
-  if (xp < 4500) return 9;
-  return Math.floor(10 + (xp - 4500) / 1000);
-}
 
 router.post("/run", authenticateToken, async (req: AuthRequest, res) => {
   const parse = RunCodeBody.safeParse(req.body);
@@ -119,10 +105,8 @@ router.post("/", authenticateToken, async (req: AuthRequest, res) => {
     status = "Wrong Answer";
   }
 
-  const avgRuntime =
-    results.reduce((sum, r) => sum + (r.time || 0), 0) / results.length;
-
-  const xpEarned = computeXP(problem.difficulty, passedCount, totalCount);
+  const avgRuntime = results.reduce((sum, r) => sum + (r.time || 0), 0) / (results.length || 1);
+  const xpEarned = allPassed ? computeXP(problem.difficulty) : 0;
 
   const [submission] = await db
     .insert(submissionsTable)
@@ -140,40 +124,112 @@ router.post("/", authenticateToken, async (req: AuthRequest, res) => {
     })
     .returning();
 
-  if (xpEarned > 0) {
+  let bonusXpEarned = 0;
+  let newBadges: Array<{ slug: string; name: string; description: string; icon: string; category: string; rarity: string; earned: boolean; earnedAt: Date | null }> = [];
+  let streakUpdated = false;
+  let newStreak = 0;
+  let newStarRank: number | null = null;
+  let levelUp = false;
+  let newLevel: number | null = null;
+  let isDailyQuest = false;
+
+  if (allPassed) {
     const [user] = await db
       .select()
       .from(usersTable)
       .where(eq(usersTable.id, req.userId!))
       .limit(1);
 
-    const existingAccepted = await db
-      .select()
-      .from(submissionsTable)
-      .where(
-        and(
-          eq(submissionsTable.userId, req.userId!),
-          eq(submissionsTable.problemId, problemId),
-          eq(submissionsTable.status, "Accepted")
-        )
-      );
+    if (user) {
+      const existingAccepted = await db
+        .select()
+        .from(submissionsTable)
+        .where(
+          and(
+            eq(submissionsTable.userId, req.userId!),
+            eq(submissionsTable.problemId, problemId),
+            eq(submissionsTable.status, "Accepted")
+          )
+        );
 
-    const isFirstAccept = existingAccepted.length === 1;
+      const isFirstAccept = existingAccepted.length === 1;
 
-    if (user && isFirstAccept) {
-      const newXp = user.xp + xpEarned;
-      const newLevel = computeLevel(newXp);
-      const newSolvedCount = user.solvedCount + 1;
+      // Check if this is the daily quest
+      const allProblems = await db.select({ id: problemsTable.id }).from(problemsTable);
+      const dailyProblemId = getDailyQuestProblemId(allProblems.map((p) => p.id));
+      isDailyQuest = problemId === dailyProblemId;
+      const dailyBonusXp = Math.floor(computeXP(problem.difficulty) * 0.5);
 
-      await db
-        .update(usersTable)
-        .set({ xp: newXp, level: newLevel, solvedCount: newSolvedCount })
-        .where(eq(usersTable.id, req.userId!));
+      if (isFirstAccept) {
+        let addedXp = xpEarned;
 
-      await db
-        .update(problemsTable)
-        .set({ solvedCount: problem.solvedCount + 1 })
-        .where(eq(problemsTable.id, problemId));
+        // Bonus XP for daily quest (only on first daily solve)
+        if (isDailyQuest) {
+          bonusXpEarned = dailyBonusXp;
+          addedXp += bonusXpEarned;
+        }
+
+        const oldLevel = user.level;
+        const newXp = user.xp + addedXp;
+        const computedLevel = computeLevel(newXp);
+        const computedStarRank = computeStarRank(computedLevel);
+
+        levelUp = computedLevel > oldLevel;
+        newLevel = levelUp ? computedLevel : null;
+
+        const oldStarRank = user.starRank;
+        if (computedStarRank > oldStarRank) {
+          newStarRank = computedStarRank;
+        }
+
+        // Update streak
+        const streakResult = await updateStreak(req.userId!, {
+          streak: user.streak,
+          lastSolvedDate: user.lastSolvedDate,
+        });
+        streakUpdated = streakResult.streakUpdated;
+        newStreak = streakResult.newStreak;
+
+        // Update daily quests completed
+        let newDailyQuestsCompleted = user.dailyQuestsCompleted;
+        if (isDailyQuest) {
+          newDailyQuestsCompleted += 1;
+        }
+
+        await db
+          .update(usersTable)
+          .set({
+            xp: newXp,
+            level: computedLevel,
+            starRank: computedStarRank,
+            solvedCount: user.solvedCount + 1,
+            dailyQuestsCompleted: newDailyQuestsCompleted,
+          })
+          .where(eq(usersTable.id, req.userId!));
+
+        await db
+          .update(problemsTable)
+          .set({ solvedCount: problem.solvedCount + 1 })
+          .where(eq(problemsTable.id, problemId));
+
+        // Check badges on updated user state
+        newBadges = (await checkAndAwardBadges(req.userId!, {
+          xp: newXp,
+          level: computedLevel,
+          solvedCount: user.solvedCount + 1,
+          streak: newStreak,
+          dailyQuestsCompleted: newDailyQuestsCompleted,
+        })).map((b) => ({ ...b, earned: true, earnedAt: new Date() }));
+
+      } else {
+        // Not first accept — still update streak if not already today
+        const streakResult = await updateStreak(req.userId!, {
+          streak: user.streak,
+          lastSolvedDate: user.lastSolvedDate,
+        });
+        streakUpdated = streakResult.streakUpdated;
+        newStreak = streakResult.newStreak;
+      }
     }
   }
 
@@ -182,9 +238,17 @@ router.post("/", authenticateToken, async (req: AuthRequest, res) => {
     status,
     passedCount,
     totalCount,
-    xpEarned: allPassed ? xpEarned : 0,
+    xpEarned,
+    bonusXpEarned,
     results,
     runtime: avgRuntime || null,
+    newBadges,
+    streakUpdated,
+    newStreak,
+    newStarRank,
+    isDailyQuest,
+    levelUp,
+    newLevel,
   });
 });
 

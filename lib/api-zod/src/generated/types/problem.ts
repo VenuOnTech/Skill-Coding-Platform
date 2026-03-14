@@ -3,7 +3,7 @@
  * Do not edit manually.
  * Api
  * CodeQuest API specification
- * OpenAPI spec version: 0.1.0
+ * OpenAPI spec version: 0.2.0
  */
 import type { ProblemDifficulty } from "./problemDifficulty";
 
@@ -16,4 +16,5 @@ export interface Problem {
   tags: string[];
   acceptanceRate?: number | null;
   solvedCount: number;
+  isDailyQuest: boolean;
 }

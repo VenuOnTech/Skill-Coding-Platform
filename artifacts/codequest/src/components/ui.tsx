@@ -1,34 +1,34 @@
 import * as React from "react";
 import { cn } from "@/lib/utils";
 
-// --- BUTTON ---
+// --- Button ---
 export interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "default" | "outline" | "ghost" | "glow" | "secondary" | "destructive";
+  variant?: "default" | "secondary" | "outline" | "ghost" | "destructive" | "gamified";
   size?: "default" | "sm" | "lg" | "icon";
 }
 
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   ({ className, variant = "default", size = "default", ...props }, ref) => {
     const variants = {
-      default: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-sm",
-      glow: "bg-primary text-primary-foreground hover:bg-primary/90 shadow-[0_0_20px_-3px_hsl(var(--primary))] hover:shadow-[0_0_25px_-1px_hsl(var(--primary))]",
-      outline: "border border-input bg-transparent hover:bg-accent/10 hover:text-accent-foreground",
-      ghost: "hover:bg-accent/10 hover:text-accent-foreground",
+      default: "bg-primary text-primary-foreground shadow-lg shadow-primary/20 hover:bg-primary/90 hover:-translate-y-0.5",
+      gamified: "bg-gradient-to-r from-primary to-accent text-white shadow-lg shadow-accent/25 hover:shadow-xl hover:shadow-accent/40 hover:-translate-y-0.5",
       secondary: "bg-secondary text-secondary-foreground hover:bg-secondary/80",
+      outline: "border-2 border-border bg-transparent hover:bg-accent hover:text-accent-foreground hover:border-accent",
+      ghost: "hover:bg-accent/10 hover:text-accent-foreground",
       destructive: "bg-destructive text-destructive-foreground hover:bg-destructive/90",
     };
     const sizes = {
       default: "h-10 px-4 py-2",
       sm: "h-9 rounded-md px-3",
-      lg: "h-12 rounded-lg px-8 text-base",
-      icon: "h-10 w-10",
+      lg: "h-12 rounded-lg px-8 text-lg font-semibold",
+      icon: "h-10 w-10 justify-center",
     };
 
     return (
       <button
         ref={ref}
         className={cn(
-          "inline-flex items-center justify-center rounded-xl font-medium transition-all duration-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 active:scale-[0.98]",
+          "inline-flex items-center rounded-xl font-medium transition-all focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:pointer-events-none disabled:opacity-50 active:translate-y-0",
           variants[variant],
           sizes[size],
           className
@@ -40,14 +40,31 @@ export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 );
 Button.displayName = "Button";
 
-// --- INPUT ---
+// --- Card ---
+export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("rounded-2xl border border-border/50 bg-card text-card-foreground shadow-xl", className)} {...props} />;
+}
+
+export function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("flex flex-col space-y-1.5 p-6", className)} {...props} />;
+}
+
+export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
+  return <h3 className={cn("text-2xl font-bold leading-none tracking-tight", className)} {...props} />;
+}
+
+export function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
+  return <div className={cn("p-6 pt-0", className)} {...props} />;
+}
+
+// --- Input ---
 export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttributes<HTMLInputElement>>(
   ({ className, type, ...props }, ref) => {
     return (
       <input
         type={type}
         className={cn(
-          "flex h-10 w-full rounded-xl border border-input bg-background/50 px-3 py-2 text-sm ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary focus-visible:border-primary transition-all disabled:cursor-not-allowed disabled:opacity-50",
+          "flex h-12 w-full rounded-xl border-2 border-border bg-background px-4 py-2 text-sm ring-offset-background transition-colors file:border-0 file:bg-transparent file:text-sm file:font-medium placeholder:text-muted-foreground focus-visible:outline-none focus-visible:border-primary focus-visible:ring-4 focus-visible:ring-primary/10 disabled:cursor-not-allowed disabled:opacity-50",
           className
         )}
         ref={ref}
@@ -58,63 +75,74 @@ export const Input = React.forwardRef<HTMLInputElement, React.InputHTMLAttribute
 );
 Input.displayName = "Input";
 
-// --- BADGE ---
-export function Badge({ className, variant = "default", children, ...props }: React.HTMLAttributes<HTMLDivElement> & { variant?: "default" | "outline" | "easy" | "medium" | "hard" }) {
+// --- Badge ---
+export function Badge({ className, variant = "default", ...props }: React.HTMLAttributes<HTMLDivElement> & { variant?: "default" | "secondary" | "outline" | "easy" | "medium" | "hard" | "quest" }) {
   const variants = {
-    default: "border-transparent bg-primary/20 text-primary",
-    outline: "text-foreground",
-    easy: "border-transparent bg-[hsl(var(--easy))]/15 text-[hsl(var(--easy))] shadow-[0_0_10px_-2px_hsl(var(--easy))]",
-    medium: "border-transparent bg-[hsl(var(--medium))]/15 text-[hsl(var(--medium))] shadow-[0_0_10px_-2px_hsl(var(--medium))]",
-    hard: "border-transparent bg-[hsl(var(--hard))]/15 text-[hsl(var(--hard))] shadow-[0_0_10px_-2px_hsl(var(--hard))]",
+    default: "border-transparent bg-primary text-primary-foreground",
+    secondary: "border-transparent bg-secondary text-secondary-foreground",
+    outline: "text-foreground border-border",
+    easy: "border-transparent bg-easy/20 text-easy border border-easy/30",
+    medium: "border-transparent bg-medium/20 text-medium border border-medium/30",
+    hard: "border-transparent bg-hard/20 text-hard border border-hard/30",
+    quest: "border-transparent bg-cyan-500/20 text-cyan-400 border border-cyan-500/50 shadow-[0_0_10px_rgba(6,182,212,0.5)]",
   };
-  
   return (
-    <div className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors", variants[variant], className)} {...props}>
-      {children}
-    </div>
+    <div className={cn("inline-flex items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors focus:outline-none", variants[variant], className)} {...props} />
   );
 }
 
-// --- CARD ---
-export function Card({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("rounded-2xl border border-white/5 bg-card text-card-foreground shadow-xl", className)} {...props} />;
-}
-export function CardHeader({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("flex flex-col space-y-1.5 p-6", className)} {...props} />;
-}
-export function CardTitle({ className, ...props }: React.HTMLAttributes<HTMLHeadingElement>) {
-  return <h3 className={cn("text-2xl font-bold leading-none tracking-tight", className)} {...props} />;
-}
-export function CardDescription({ className, ...props }: React.HTMLAttributes<HTMLParagraphElement>) {
-  return <p className={cn("text-sm text-muted-foreground", className)} {...props} />;
-}
-export function CardContent({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("p-6 pt-0", className)} {...props} />;
-}
-export function CardFooter({ className, ...props }: React.HTMLAttributes<HTMLDivElement>) {
-  return <div className={cn("flex items-center p-6 pt-0", className)} {...props} />;
-}
-
-// --- TABLE ---
+// --- Table ---
 export function Table({ className, ...props }: React.HTMLAttributes<HTMLTableElement>) {
   return (
-    <div className="relative w-full overflow-auto rounded-xl border border-border">
+    <div className="w-full overflow-auto">
       <table className={cn("w-full caption-bottom text-sm", className)} {...props} />
     </div>
   );
 }
+
 export function TableHeader({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
-  return <thead className={cn("[&_tr]:border-b bg-muted/50", className)} {...props} />;
+  return <thead className={cn("[&_tr]:border-b border-border/50", className)} {...props} />;
 }
+
 export function TableBody({ className, ...props }: React.HTMLAttributes<HTMLTableSectionElement>) {
   return <tbody className={cn("[&_tr:last-child]:border-0", className)} {...props} />;
 }
+
 export function TableRow({ className, ...props }: React.HTMLAttributes<HTMLTableRowElement>) {
-  return <tr className={cn("border-b transition-colors hover:bg-muted/30 data-[state=selected]:bg-muted", className)} {...props} />;
+  return (
+    <tr
+      className={cn("border-b border-border/30 transition-colors hover:bg-muted/30 data-[state=selected]:bg-muted", className)}
+      {...props}
+    />
+  );
 }
+
 export function TableHead({ className, ...props }: React.ThHTMLAttributes<HTMLTableCellElement>) {
-  return <th className={cn("h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0", className)} {...props} />;
+  return (
+    <th
+      className={cn("h-12 px-4 text-left align-middle font-medium text-muted-foreground [&:has([role=checkbox])]:pr-0", className)}
+      {...props}
+    />
+  );
 }
+
 export function TableCell({ className, ...props }: React.TdHTMLAttributes<HTMLTableCellElement>) {
-  return <td className={cn("p-4 align-middle [&:has([role=checkbox])]:pr-0", className)} {...props} />;
+  return (
+    <td
+      className={cn("p-4 align-middle [&:has([role=checkbox])]:pr-0", className)}
+      {...props}
+    />
+  );
+}
+
+// --- Progress ---
+export function Progress({ value, className, indicatorClassName }: { value: number; className?: string, indicatorClassName?: string }) {
+  return (
+    <div className={cn("relative h-4 w-full overflow-hidden rounded-full bg-secondary/50 backdrop-blur-sm border border-white/5", className)}>
+      <div
+        className={cn("h-full w-full flex-1 bg-gradient-to-r from-primary to-accent transition-all duration-1000 ease-out", indicatorClassName)}
+        style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
+      />
+    </div>
+  );
 }
