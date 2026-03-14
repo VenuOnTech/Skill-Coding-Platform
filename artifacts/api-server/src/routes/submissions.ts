@@ -47,11 +47,16 @@ router.post("/run", authenticateToken, async (req: AuthRequest, res) => {
     .from(testCasesTable)
     .where(and(eq(testCasesTable.problemId, problemId), eq(testCasesTable.isHidden, false)));
 
-  const results = await Promise.all(
+  const rawResults = await Promise.all(
     sampleTestCases.map((tc) =>
       runTestCase(code, language, tc.input, tc.expectedOutput)
     )
   );
+
+  const results = rawResults.map((r) => ({
+    ...r,
+    actualOutput: r.actualOutput ?? undefined
+  }));
 
   res.json({
     results,
@@ -84,11 +89,16 @@ router.post("/", authenticateToken, async (req: AuthRequest, res) => {
     .from(testCasesTable)
     .where(eq(testCasesTable.problemId, problemId));
 
-  const results = await Promise.all(
+  const rawResults = await Promise.all(
     allTestCases.map((tc) =>
       runTestCase(code, language, tc.input, tc.expectedOutput)
     )
   );
+
+  const results = rawResults.map((r) => ({
+    ...r,
+    actualOutput: r.actualOutput ?? undefined,
+  }));
 
   const passedCount = results.filter((r) => r.passed).length;
   const totalCount = results.length;
@@ -154,7 +164,6 @@ router.post("/", authenticateToken, async (req: AuthRequest, res) => {
 
       const isFirstAccept = existingAccepted.length === 1;
 
-      // Check if this is the daily quest
       const allProblems = await db.select({ id: problemsTable.id }).from(problemsTable);
       const dailyProblemId = getDailyQuestProblemId(allProblems.map((p) => p.id));
       isDailyQuest = problemId === dailyProblemId;
@@ -163,7 +172,6 @@ router.post("/", authenticateToken, async (req: AuthRequest, res) => {
       if (isFirstAccept) {
         let addedXp = xpEarned;
 
-        // Bonus XP for daily quest (only on first daily solve)
         if (isDailyQuest) {
           bonusXpEarned = dailyBonusXp;
           addedXp += bonusXpEarned;
@@ -182,7 +190,6 @@ router.post("/", authenticateToken, async (req: AuthRequest, res) => {
           newStarRank = computedStarRank;
         }
 
-        // Update streak
         const streakResult = await updateStreak(req.userId!, {
           streak: user.streak,
           lastSolvedDate: user.lastSolvedDate,
@@ -190,7 +197,6 @@ router.post("/", authenticateToken, async (req: AuthRequest, res) => {
         streakUpdated = streakResult.streakUpdated;
         newStreak = streakResult.newStreak;
 
-        // Update daily quests completed
         let newDailyQuestsCompleted = user.dailyQuestsCompleted;
         if (isDailyQuest) {
           newDailyQuestsCompleted += 1;
@@ -212,7 +218,6 @@ router.post("/", authenticateToken, async (req: AuthRequest, res) => {
           .set({ solvedCount: problem.solvedCount + 1 })
           .where(eq(problemsTable.id, problemId));
 
-        // Check badges on updated user state
         newBadges = (await checkAndAwardBadges(req.userId!, {
           xp: newXp,
           level: computedLevel,
@@ -222,7 +227,6 @@ router.post("/", authenticateToken, async (req: AuthRequest, res) => {
         })).map((b) => ({ ...b, earned: true, earnedAt: new Date() }));
 
       } else {
-        // Not first accept — still update streak if not already today
         const streakResult = await updateStreak(req.userId!, {
           streak: user.streak,
           lastSolvedDate: user.lastSolvedDate,
