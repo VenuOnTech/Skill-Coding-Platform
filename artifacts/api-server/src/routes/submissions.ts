@@ -55,7 +55,8 @@ router.post("/run", authenticateToken, async (req: AuthRequest, res) => {
 
   const results = rawResults.map((r) => ({
     ...r,
-    actualOutput: r.actualOutput ?? undefined
+    actualOutput: r.actualOutput ?? undefined,
+    error: r.error ?? undefined,
   }));
 
   res.json({
