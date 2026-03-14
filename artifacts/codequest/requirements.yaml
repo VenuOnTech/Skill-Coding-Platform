@@ -1,0 +1,21 @@
+packages:
+  "@monaco-editor/react": "Code editor component for problem solving"
+  "framer-motion": "Animations and page transitions"
+  "date-fns": "Human-readable date formatting for submissions"
+  "react-hook-form": "Form state management"
+  "@hookform/resolvers": "Zod validation for forms"
+  "clsx": "Utility for constructing className strings"
+  "tailwind-merge": "Utility to merge tailwind classes"
+
+images:
+  - path: "artifacts/codequest/public/images/hero-bg.png"
+    description: "Abstract dark theme geometric mesh with glowing purple and indigo neon lines, tech and coding vibe, deep space background"
+    aspect_ratio: "16:9"
+  - path: "artifacts/codequest/public/images/logo.png"
+    description: "Minimal modern geometric code brackets logo mark in vibrant purple gradient on completely transparent background"
+    aspect_ratio: "1:1"
+
+notes:
+  - API base URL is /api
+  - Using a global fetch interceptor in App.tsx to automatically inject the codequest_token from localStorage as a Bearer token
+  - Using @workspace/api-client-react for TanStack Query hooks

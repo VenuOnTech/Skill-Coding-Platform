@@ -1,22 +1,31 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: CodeQuest API specification
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: auth
+    description: Authentication operations
+  - name: problems
+    description: Problem library operations
+  - name: submissions
+    description: Code submission operations
+  - name: leaderboard
+    description: Leaderboard operations
+  - name: users
+    description: User profile operations
+
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,7 +33,288 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+
+  /auth/register:
+    post:
+      operationId: register
+      tags: [auth]
+      summary: Register a new user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+      responses:
+        "201":
+          description: User created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "409":
+          description: User already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/login:
+    post:
+      operationId: login
+      tags: [auth]
+      summary: Login a user
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/AuthResponse"
+        "401":
+          description: Invalid credentials
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /auth/me:
+    get:
+      operationId: getMe
+      tags: [auth]
+      summary: Get current user profile
+      security:
+        - bearerAuth: []
+      responses:
+        "200":
+          description: Current user profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /problems:
+    get:
+      operationId: getProblems
+      tags: [problems]
+      summary: Get all problems
+      parameters:
+        - name: difficulty
+          in: query
+          schema:
+            type: string
+            enum: [Easy, Medium, Hard]
+        - name: topic
+          in: query
+          schema:
+            type: string
+        - name: search
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        "200":
+          description: List of problems
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemsListResponse"
+
+  /problems/{id}:
+    get:
+      operationId: getProblem
+      tags: [problems]
+      summary: Get a problem by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Problem details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProblemDetail"
+        "404":
+          description: Problem not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /submissions:
+    post:
+      operationId: submitCode
+      tags: [submissions]
+      summary: Submit code for a problem
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubmitCodeRequest"
+      responses:
+        "200":
+          description: Submission result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubmissionResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+        "404":
+          description: Problem not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /submissions/run:
+    post:
+      operationId: runCode
+      tags: [submissions]
+      summary: Run code against sample test cases
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RunCodeRequest"
+      responses:
+        "200":
+          description: Run result
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/RunResult"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /submissions/history:
+    get:
+      operationId: getSubmissionHistory
+      tags: [submissions]
+      summary: Get submission history for current user
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: problemId
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Submission history
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubmissionHistoryResponse"
+        "401":
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
+  /leaderboard:
+    get:
+      operationId: getLeaderboard
+      tags: [leaderboard]
+      summary: Get global leaderboard
+      parameters:
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            default: 50
+      responses:
+        "200":
+          description: Leaderboard
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/LeaderboardResponse"
+
+  /users/{id}:
+    get:
+      operationId: getUserProfile
+      tags: [users]
+      summary: Get user profile by ID
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: User profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserProfile"
+        "404":
+          description: User not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
   schemas:
     HealthStatus:
       type: object
@@ -34,3 +324,363 @@ components:
       required:
         - status
 
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+        message:
+          type: string
+      required:
+        - error
+
+    RegisterRequest:
+      type: object
+      properties:
+        username:
+          type: string
+          minLength: 3
+          maxLength: 30
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+          minLength: 6
+      required:
+        - username
+        - email
+        - password
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required:
+        - email
+        - password
+
+    AuthResponse:
+      type: object
+      properties:
+        token:
+          type: string
+        user:
+          $ref: "#/components/schemas/UserProfile"
+      required:
+        - token
+        - user
+
+    UserProfile:
+      type: object
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        xp:
+          type: integer
+        level:
+          type: integer
+        solvedCount:
+          type: integer
+        rank:
+          type: integer
+          nullable: true
+        createdAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - username
+        - email
+        - xp
+        - level
+        - solvedCount
+        - createdAt
+
+    Problem:
+      type: object
+      properties:
+        id:
+          type: integer
+        title:
+          type: string
+        slug:
+          type: string
+        difficulty:
+          type: string
+          enum: [Easy, Medium, Hard]
+        topic:
+          type: string
+        tags:
+          type: array
+          items:
+            type: string
+        acceptanceRate:
+          type: number
+          nullable: true
+        solvedCount:
+          type: integer
+      required:
+        - id
+        - title
+        - slug
+        - difficulty
+        - topic
+        - tags
+        - solvedCount
+
+    ProblemDetail:
+      allOf:
+        - $ref: "#/components/schemas/Problem"
+        - type: object
+          properties:
+            description:
+              type: string
+            constraints:
+              type: string
+              nullable: true
+            examples:
+              type: array
+              items:
+                $ref: "#/components/schemas/ProblemExample"
+            starterCode:
+              $ref: "#/components/schemas/StarterCode"
+          required:
+            - description
+            - examples
+            - starterCode
+
+    ProblemExample:
+      type: object
+      properties:
+        input:
+          type: string
+        output:
+          type: string
+        explanation:
+          type: string
+          nullable: true
+      required:
+        - input
+        - output
+
+    StarterCode:
+      type: object
+      properties:
+        python:
+          type: string
+        javascript:
+          type: string
+      required:
+        - python
+        - javascript
+
+    ProblemsListResponse:
+      type: object
+      properties:
+        problems:
+          type: array
+          items:
+            $ref: "#/components/schemas/Problem"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+      required:
+        - problems
+        - total
+        - page
+        - limit
+
+    SubmitCodeRequest:
+      type: object
+      properties:
+        problemId:
+          type: integer
+        code:
+          type: string
+        language:
+          type: string
+          enum: [python, javascript]
+      required:
+        - problemId
+        - code
+        - language
+
+    RunCodeRequest:
+      type: object
+      properties:
+        problemId:
+          type: integer
+        code:
+          type: string
+        language:
+          type: string
+          enum: [python, javascript]
+      required:
+        - problemId
+        - code
+        - language
+
+    TestCaseResult:
+      type: object
+      properties:
+        passed:
+          type: boolean
+        input:
+          type: string
+        expectedOutput:
+          type: string
+        actualOutput:
+          type: string
+          nullable: true
+        error:
+          type: string
+          nullable: true
+        time:
+          type: number
+          nullable: true
+      required:
+        - passed
+        - input
+        - expectedOutput
+
+    SubmissionResult:
+      type: object
+      properties:
+        id:
+          type: integer
+        status:
+          type: string
+          enum: [Accepted, Wrong Answer, Time Limit Exceeded, Runtime Error, Compilation Error]
+        passedCount:
+          type: integer
+        totalCount:
+          type: integer
+        xpEarned:
+          type: integer
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/TestCaseResult"
+        runtime:
+          type: number
+          nullable: true
+      required:
+        - id
+        - status
+        - passedCount
+        - totalCount
+        - xpEarned
+        - results
+
+    RunResult:
+      type: object
+      properties:
+        results:
+          type: array
+          items:
+            $ref: "#/components/schemas/TestCaseResult"
+        allPassed:
+          type: boolean
+      required:
+        - results
+        - allPassed
+
+    Submission:
+      type: object
+      properties:
+        id:
+          type: integer
+        problemId:
+          type: integer
+        problemTitle:
+          type: string
+        language:
+          type: string
+        status:
+          type: string
+        passedCount:
+          type: integer
+        totalCount:
+          type: integer
+        runtime:
+          type: number
+          nullable: true
+        submittedAt:
+          type: string
+          format: date-time
+      required:
+        - id
+        - problemId
+        - problemTitle
+        - language
+        - status
+        - passedCount
+        - totalCount
+        - submittedAt
+
+    SubmissionHistoryResponse:
+      type: object
+      properties:
+        submissions:
+          type: array
+          items:
+            $ref: "#/components/schemas/Submission"
+      required:
+        - submissions
+
+    LeaderboardEntry:
+      type: object
+      properties:
+        rank:
+          type: integer
+        userId:
+          type: integer
+        username:
+          type: string
+        xp:
+          type: integer
+        level:
+          type: integer
+        solvedCount:
+          type: integer
+      required:
+        - rank
+        - userId
+        - username
+        - xp
+        - level
+        - solvedCount
+
+    LeaderboardResponse:
+      type: object
+      properties:
+        entries:
+          type: array
+          items:
+            $ref: "#/components/schemas/LeaderboardEntry"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+        currentUserRank:
+          type: integer
+          nullable: true
+      required:
+        - entries
+        - total
+        - page
+        - limit
