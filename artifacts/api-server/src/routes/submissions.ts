@@ -57,6 +57,7 @@ router.post("/run", authenticateToken, async (req: AuthRequest, res) => {
     ...r,
     actualOutput: r.actualOutput ?? undefined,
     error: r.error ?? undefined,
+    time: r.time ?? undefined,
   }));
 
   res.json({
@@ -100,6 +101,7 @@ router.post("/", authenticateToken, async (req: AuthRequest, res) => {
     ...r,
     actualOutput: r.actualOutput ?? undefined,
     error: r.error ?? undefined,
+    time: r.time ?? undefined,
   }));
 
   const passedCount = results.filter((r) => r.passed).length;
