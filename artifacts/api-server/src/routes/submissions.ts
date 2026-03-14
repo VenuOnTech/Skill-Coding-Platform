@@ -52,12 +52,6 @@ router.post("/run", authenticateToken, async (req: AuthRequest, res) => {
       runTestCase(code, language, tc.input, tc.expectedOutput)
     )
   );
-
-  const rawResults = await Promise.all(
-    allTestCases.map((tc) =>
-      runTestCase(code, language, tc.input, tc.expectedOutput)
-    )
-  );
   
   const results = rawResults.map((r) => ({
     ...r,
