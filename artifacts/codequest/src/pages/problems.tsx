@@ -2,13 +2,13 @@ import { useState } from "react";
 import { Link } from "wouter";
 import { useGetProblems, useGetDailyQuest, GetProblemsDifficulty } from "@workspace/api-client-react";
 import { Card, Badge, Input, Button } from "@/components/ui";
-import { Search, Zap, Filter, CheckCircle2, ChevronRight } from "lucide-react";
+import { Search, Zap, ChevronRight, CheckCircle2 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export default function Problems() {
   const [search, setSearch] = useState("");
   const [difficulty, setDifficulty] = useState<GetProblemsDifficulty | "">("");
-  
+
   const { data, isLoading } = useGetProblems({
     search: search || undefined,
     difficulty: difficulty ? difficulty : undefined,
@@ -51,14 +51,14 @@ export default function Problems() {
       <div className="flex flex-col md:flex-row gap-4 mb-6">
         <div className="relative flex-1">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-          <Input 
-            placeholder="Search problems..." 
+          <Input
+            placeholder="Search problems..."
             className="pl-10 h-12"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
         </div>
-        <select 
+        <select
           className="h-12 rounded-xl border-2 border-border bg-background px-4 text-sm focus:outline-none focus:border-primary cursor-pointer w-full md:w-48"
           value={difficulty}
           onChange={(e) => setDifficulty(e.target.value as GetProblemsDifficulty | "")}
@@ -104,7 +104,11 @@ export default function Problems() {
                     <td className="p-4 font-medium">
                       <Link href={`/problems/${prob.id}`} className="hover:text-primary transition-colors flex items-center gap-2">
                         {prob.id}. {prob.title}
-                        {prob.isDailyQuest && <Zap className="w-4 h-4 text-cyan-400" title="Daily Quest" />}
+                        {prob.isDailyQuest && (
+                          <span title="Daily Quest">
+                            <Zap className="w-4 h-4 text-cyan-400" aria-label="Daily Quest" />
+                          </span>
+                        )}
                       </Link>
                     </td>
                     <td className="p-4">
@@ -112,7 +116,7 @@ export default function Problems() {
                     </td>
                     <td className="p-4 text-muted-foreground">{prob.topic}</td>
                     <td className="p-4 text-right text-muted-foreground">
-                      {prob.acceptanceRate ? `${prob.acceptanceRate.toFixed(1)}%` : 'N/A'}
+                      {prob.acceptanceRate ? `${prob.acceptanceRate.toFixed(1)}%` : "N/A"}
                     </td>
                   </tr>
                 ))

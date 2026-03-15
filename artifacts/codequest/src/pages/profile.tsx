@@ -2,15 +2,16 @@ import React from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useGetSubmissionHistory } from "@workspace/api-client-react";
 import { Card, CardHeader, CardTitle, CardContent, Table, TableHeader, TableRow, TableHead, TableBody, TableCell, Badge } from "@/components/ui";
-import { User, Target, Zap, Activity, Clock, Loader2 } from "lucide-react";
+import { User, Target, Zap, Activity, Clock, Loader2, Trophy } from "lucide-react";
 import { formatDate } from "@/lib/utils";
 import { Link } from "wouter";
 
 export default function Profile() {
   const { user } = useAuth();
-  const { data: history, isLoading } = useGetSubmissionHistory({
-    query: { enabled: !!user }
-  });
+  const { data: history, isLoading } = useGetSubmissionHistory(
+    undefined,
+    { query: { enabled: !!user } as any }
+  );
 
   if (!user) {
     return (
@@ -27,7 +28,7 @@ export default function Profile() {
     { label: "Current Level", value: user.level, icon: Target, color: "text-blue-500" },
     { label: "Total XP", value: user.xp.toLocaleString(), icon: Zap, color: "text-amber-500" },
     { label: "Problems Solved", value: user.solvedCount, icon: Activity, color: "text-green-500" },
-    { label: "Global Rank", value: user.rank ? `#${user.rank}` : "Unranked", icon: Trophy, color: "text-purple-500" } // Fallback to Trophy if needed
+    { label: "Global Rank", value: user.rank ? `#${user.rank}` : "Unranked", icon: Trophy, color: "text-purple-500" },
   ];
 
   return (
@@ -100,12 +101,12 @@ export default function Profile() {
                         <Badge variant="outline" className="font-mono text-xs">{sub.language}</Badge>
                       </TableCell>
                       <TableCell>
-                        <span className={`font-semibold text-sm ${isAccepted ? 'text-green-500' : 'text-destructive'}`}>
+                        <span className={`font-semibold text-sm ${isAccepted ? "text-green-500" : "text-destructive"}`}>
                           {sub.status}
                         </span>
                       </TableCell>
                       <TableCell className="text-right font-mono text-muted-foreground text-sm">
-                        {sub.runtime ? `${sub.runtime}ms` : '--'}
+                        {sub.runtime ? `${sub.runtime}ms` : "--"}
                       </TableCell>
                     </TableRow>
                   );
@@ -118,6 +119,3 @@ export default function Profile() {
     </div>
   );
 }
-
-// Temporary Trophy import fix if missed above
-import { Trophy } from "lucide-react";

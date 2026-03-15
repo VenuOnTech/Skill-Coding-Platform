@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from "react";
+import React, { createContext, useContext, useState } from "react";
 import { useGetMe, UserProfile } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { getGetMeQueryKey } from "@workspace/api-client-react";
@@ -17,15 +17,12 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(() => localStorage.getItem("codequest_token"));
   const queryClient = useQueryClient();
-  
+
   const { data: user, isLoading: isUserLoading, refetch } = useGetMe({
-    query: {
-      enabled: !!token,
-      retry: false,
-    }
+    query: { enabled: !!token, retry: false } as any,
   });
 
-  const login = (newToken: string, userProfile: UserProfile) => {
+  const login = (newToken: string, _userProfile: UserProfile) => {
     localStorage.setItem("codequest_token", newToken);
     setToken(newToken);
     refetch();
@@ -43,20 +40,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  useEffect(() => {
-    if (token && !isUserLoading && !user) {
-      // Intentionally empty: handle unauth errors if needed, but react-query usually suffices
-    }
-  }, [token, isUserLoading, user]);
-
   return (
-    <AuthContext.Provider value={{ 
-      user: user || null, 
-      token, 
-      isLoading: !!token && isUserLoading, 
-      login, 
+    <AuthContext.Provider value={{
+      user: user || null,
+      token,
+      isLoading: !!token && isUserLoading,
+      login,
       logout,
-      updateLocalUser
+      updateLocalUser,
     }}>
       {children}
     </AuthContext.Provider>

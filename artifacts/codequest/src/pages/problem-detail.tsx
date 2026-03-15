@@ -3,7 +3,7 @@ import { useRoute } from "wouter";
 import { useGetProblem, useSubmitCode, useRunCode, SubmitCodeRequestLanguage } from "@workspace/api-client-react";
 import Editor from "@monaco-editor/react";
 import { Button, Badge, Card } from "@/components/ui";
-import { Play, Send, Zap, CheckCircle2, XCircle, Clock, Activity, ArrowRight } from "lucide-react";
+import { Play, Send, Zap, CheckCircle2, XCircle, Clock, Activity, Trophy } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { toast } from "@/hooks/use-toast";
 import { useCelebrationStore } from "@/hooks/use-celebration";
@@ -12,15 +12,17 @@ import { useAuth } from "@/contexts/AuthContext";
 export default function ProblemDetail() {
   const [, params] = useRoute("/problems/:id");
   const problemId = parseInt(params?.id || "0", 10);
-  
-  const { data: problem, isLoading } = useGetProblem(problemId, { query: { enabled: !!problemId } });
-  
+
+  const { data: problem, isLoading } = useGetProblem(problemId, {
+    query: { enabled: !!problemId } as any,
+  });
+
   const [code, setCode] = useState("");
   const [language, setLanguage] = useState<SubmitCodeRequestLanguage>("python");
   const [activeTab, setActiveTab] = useState<"description" | "results">("description");
   const [runResult, setRunResult] = useState<any>(null);
 
-  const { updateLocalUser } = useAuth();
+  const { user, updateLocalUser } = useAuth();
   const { showLevelUp, showBadges } = useCelebrationStore();
 
   useEffect(() => {
@@ -44,8 +46,8 @@ export default function ProblemDetail() {
         setActiveTab("results");
         toast({ title: data.allPassed ? "Sample Tests Passed!" : "Some tests failed", type: data.allPassed ? "success" : "error" });
       },
-      onError: (err) => toast({ title: "Run Failed", description: err.message, type: "error" })
-    }
+      onError: (err: any) => toast({ title: "Run Failed", description: err.message, type: "error" }),
+    },
   });
 
   const submitMutation = useSubmitCode({
@@ -53,60 +55,60 @@ export default function ProblemDetail() {
       onSuccess: (data) => {
         setRunResult({ type: "submit", data });
         setActiveTab("results");
-        
+
         if (data.status === "Accepted") {
           toast({ title: "Accepted!", description: `Passed ${data.passedCount}/${data.totalCount} test cases.`, type: "success" });
-          
+
           if (data.xpEarned > 0 || data.bonusXpEarned > 0) {
-             const totalXp = data.xpEarned + data.bonusXpEarned;
-             toast({ title: `Earned +${totalXp} XP!`, type: "gamification" });
-             
-             updateLocalUser({ 
-               xp: (prev) => (prev || 0) + totalXp,
-               streak: data.newStreak,
-               starRank: data.newStarRank || undefined
-             });
+            const totalXp = data.xpEarned + data.bonusXpEarned;
+            toast({ title: `Earned +${totalXp} XP!`, type: "gamification" });
+
+            updateLocalUser({
+              xp: (user?.xp || 0) + totalXp,
+              streak: data.newStreak,
+              ...(data.newStarRank ? { starRank: data.newStarRank } : {}),
+            });
           }
-          
+
           if (data.isDailyQuest && data.bonusXpEarned > 0) {
-             toast({ title: "Daily Quest Complete!", description: `+${data.bonusXpEarned} Bonus XP`, type: "gamification" });
+            toast({ title: "Daily Quest Complete!", description: `+${data.bonusXpEarned} Bonus XP`, type: "gamification" });
           }
 
           if (data.streakUpdated) {
-             toast({ title: "🔥 Streak Extended!", description: `You're on a ${data.newStreak} day streak!`, type: "gamification" });
+            toast({ title: "🔥 Streak Extended!", description: `You're on a ${data.newStreak} day streak!`, type: "gamification" });
           }
 
           if (data.newStarRank) {
-             toast({ title: "⭐ Star Rank Upgraded!", description: "You've earned a new star!", type: "gamification" });
+            toast({ title: "⭐ Star Rank Upgraded!", description: "You've earned a new star!", type: "gamification" });
           }
 
           if (data.levelUp && data.newLevel) {
-             showLevelUp(data.newLevel - 1, data.newLevel);
+            showLevelUp(data.newLevel - 1, data.newLevel);
           } else if (data.newBadges && data.newBadges.length > 0) {
-             showBadges(data.newBadges);
+            showBadges(data.newBadges as any);
           }
         } else {
           toast({ title: "Submission Failed", description: data.status, type: "error" });
         }
       },
-      onError: (err) => toast({ title: "Submission Error", description: err.message, type: "error" })
-    }
+      onError: (err: any) => toast({ title: "Submission Error", description: err.message, type: "error" }),
+    },
   });
 
-  if (isLoading || !problem) return <div className="p-8 text-center">Loading...</div>;
+  if (isLoading || !problem) return <div className="p-8 text-center text-muted-foreground">Loading...</div>;
 
   return (
     <div className="flex flex-col md:flex-row h-[calc(100vh-4rem)]">
       {/* Left Panel */}
       <div className="w-full md:w-1/2 flex flex-col border-r border-border bg-card/30">
         <div className="flex border-b border-border bg-background">
-          <button 
+          <button
             className={cn("px-6 py-3 text-sm font-medium border-b-2 transition-colors", activeTab === "description" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}
             onClick={() => setActiveTab("description")}
           >
             Description
           </button>
-          <button 
+          <button
             className={cn("px-6 py-3 text-sm font-medium border-b-2 transition-colors", activeTab === "results" ? "border-primary text-foreground" : "border-transparent text-muted-foreground hover:text-foreground")}
             onClick={() => setActiveTab("results")}
           >
@@ -129,9 +131,9 @@ export default function ProblemDetail() {
                   )}
                 </div>
               </div>
-              
+
               <div className="prose prose-invert max-w-none">
-                <div dangerouslySetInnerHTML={{ __html: problem.description.replace(/\n/g, '<br/>') }} />
+                <div dangerouslySetInnerHTML={{ __html: problem.description.replace(/\n/g, "<br/>") }} />
               </div>
 
               {problem.examples.map((ex, i) => (
@@ -149,7 +151,7 @@ export default function ProblemDetail() {
                 <div className="mt-8">
                   <h3 className="font-bold text-foreground mb-2">Constraints:</h3>
                   <div className="bg-muted/50 rounded-xl p-4 font-mono text-sm border border-border/50">
-                    <div dangerouslySetInnerHTML={{ __html: problem.constraints.replace(/\n/g, '<br/>') }} />
+                    <div dangerouslySetInnerHTML={{ __html: problem.constraints.replace(/\n/g, "<br/>") }} />
                   </div>
                 </div>
               )}
@@ -163,14 +165,14 @@ export default function ProblemDetail() {
                   {runResult.data.status === "Accepted" ? <Trophy className="w-12 h-12 mb-3" /> : <XCircle className="w-12 h-12 mb-3" />}
                   <h2 className="text-2xl font-bold mb-1">{runResult.data.status}</h2>
                   <p className="opacity-80 mb-4">{runResult.data.passedCount} / {runResult.data.totalCount} test cases passed</p>
-                  
+
                   {runResult.data.status === "Accepted" && (
                     <div className="flex gap-4">
-                       <Badge variant="outline" className="bg-background/50 py-1.5"><Activity className="w-4 h-4 mr-2" /> +{runResult.data.xpEarned} XP</Badge>
-                       {runResult.data.bonusXpEarned > 0 && (
-                         <Badge variant="quest" className="py-1.5"><Zap className="w-4 h-4 mr-2" /> +{runResult.data.bonusXpEarned} Bonus XP</Badge>
-                       )}
-                       <Badge variant="outline" className="bg-background/50 py-1.5"><Clock className="w-4 h-4 mr-2" /> {runResult.data.runtime?.toFixed(2)}ms</Badge>
+                      <Badge variant="outline" className="bg-background/50 py-1.5"><Activity className="w-4 h-4 mr-2" /> +{runResult.data.xpEarned} XP</Badge>
+                      {runResult.data.bonusXpEarned > 0 && (
+                        <Badge variant="quest" className="py-1.5"><Zap className="w-4 h-4 mr-2" /> +{runResult.data.bonusXpEarned} Bonus XP</Badge>
+                      )}
+                      <Badge variant="outline" className="bg-background/50 py-1.5"><Clock className="w-4 h-4 mr-2" /> {runResult.data.runtime?.toFixed(2)}ms</Badge>
                     </div>
                   )}
                 </div>
@@ -220,7 +222,7 @@ export default function ProblemDetail() {
       {/* Right Panel - Editor */}
       <div className="w-full md:w-1/2 flex flex-col bg-background">
         <div className="flex items-center justify-between p-2 border-b border-border bg-card/50">
-          <select 
+          <select
             className="bg-secondary text-secondary-foreground border-none text-sm rounded-lg px-3 py-1.5 focus:ring-0 outline-none cursor-pointer"
             value={language}
             onChange={handleLanguageChange}
@@ -228,7 +230,7 @@ export default function ProblemDetail() {
             <option value="python">Python 3</option>
             <option value="javascript">JavaScript</option>
           </select>
-          
+
           <div className="flex gap-2">
             <Button variant="secondary" size="sm" onClick={() => runMutation.mutate({ data: { problemId, code, language } })} disabled={runMutation.isPending || submitMutation.isPending}>
               <Play className="w-4 h-4 mr-1.5" /> Run
@@ -238,7 +240,7 @@ export default function ProblemDetail() {
             </Button>
           </div>
         </div>
-        
+
         <div className="flex-1 relative">
           <Editor
             height="100%"
@@ -249,7 +251,7 @@ export default function ProblemDetail() {
             options={{
               minimap: { enabled: false },
               fontSize: 14,
-              fontFamily: 'Fira Code',
+              fontFamily: "Fira Code",
               padding: { top: 16 },
               scrollBeyondLastLine: false,
               roundedSelection: false,
